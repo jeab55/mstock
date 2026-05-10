@@ -27,8 +27,6 @@ export default function TabChanidYoi() {
     { icon: '💲', iconKey: '💲', label: 'ค้นประเภท', onClick: () => {} },
     { icon: '🖨', iconKey: '🖨', label: 'พิมพ์ 1', onClick: () => {} },
     { icon: '🖨', iconKey: '🖨', label: 'พิมพ์ 2', onClick: () => {} },
-    { icon: 'AA', iconKey: 'AA1', label: 'ส่งต่อ 1', onClick: () => {} },
-    { icon: 'AA', iconKey: 'AA2', label: 'ส่งต่อ 2', onClick: () => {} },
   ];
 
   const handleDoubleClick = (i, row) => {

@@ -2,11 +2,10 @@ import React, { useState } from 'react';
 
 function getRowStyle(firstCol) {
   const val = String(firstCol || '');
-  if (val.startsWith(':')) return { bg: '#B1E4F5', color: '#000000', bold: false };
-  if (val === ':sum' || val === 'SUM' || val.startsWith('SUM') || val === 'sum') return { bg: '#8EA583', color: '#ffffff', bold: true };
-  if (val === '-SUM') return { bg: '#8EA583', color: '#ffffff', bold: true };
+  if (val === '-SUM' || val === ':sum' || val === 'sum' || val === 'SUM') return { bg: '#8EA583', color: '#ffffff', bold: true };
+  if (val.startsWith(':')) return { bg: '#B1E4F5', color: '#000000', bold: false, isSection: true };
   if (val.startsWith('+') || val.startsWith('<')) return { bg: '#C0DCC0', color: '#000000', bold: false };
-  if (val === '-') return { bg: '#ffffff', color: '#000000', bold: true }; // subtotal row
+  if (val === '-') return { bg: '#ffffff', color: '#000000', bold: false, isSubtotal: true }; // subtotal: numbers red per-cell
   if (val.startsWith('-') && val.length > 1) return { bg: '#ffffff', color: '#ff0000', bold: false };
   if (val.startsWith('[')) return { bg: '#BFF0F7', color: '#000000', bold: false };
   return { bg: '#ffffff', color: '#000000', bold: false };
@@ -34,7 +33,7 @@ export default function ListView({ columns, rows, headerRow, subHeaderRow, onRow
               width: col.width,
               minWidth: col.width,
               textAlign: col.align || 'left',
-              fontWeight: 600,
+              fontWeight: 400,
             }}
           >
             {col.label}
@@ -111,9 +110,13 @@ export default function ListView({ columns, rows, headerRow, subHeaderRow, onRow
             >
               {columns.map((col, ci) => {
                 const val = row[col.key];
-                const display = col.align === 'right' && typeof val === 'number' ? formatNum(val) : (val !== undefined && val !== null ? String(val) : '');
-                // Check if value is negative number for red font
-                const isNeg = typeof val === 'number' && val < 0 && !isSelected;
+                const isNumeric = typeof val === 'number';
+                const display = col.align === 'right' && isNumeric ? formatNum(val) : (val !== undefined && val !== null ? String(val) : '');
+                // Red: negative numbers OR subtotal row numeric cells
+                const isRed = !isSelected && (
+                  (isNumeric && val < 0) ||
+                  (style.isSubtotal && isNumeric && val !== 0)
+                );
                 return (
                   <div
                     key={ci}
@@ -123,7 +126,7 @@ export default function ListView({ columns, rows, headerRow, subHeaderRow, onRow
                       minWidth: col.width,
                       textAlign: col.align || 'left',
                       borderBottom: '1px solid #f0f0f0',
-                      color: isNeg && !isSelected ? '#ff0000' : undefined,
+                      color: isRed ? '#ff0000' : undefined,
                     }}
                   >
                     {display}

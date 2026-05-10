@@ -188,6 +188,56 @@ export const LISTVIEW2_ITEMS = [
   { abill: "OS", billno: "OS022605033071", adate: "04/05 18:39", debit: 0, credit: 0.30, at: "163.0-73.9=89.1" },
 ];
 
+// ===== MID_BILLS — per-mid bill movements for ListView2 =====
+export const MID_BILLS = {
+  "101006": {
+    header: { abill: "+สาขาปตท.บ้าน...", billno: "101006", adate: "หมูสันคอ", debit: "01/05/26", credit: "31/05/26", at: "31.11 | 307.25 | 305.34 | 33.01" },
+    subHeader: { abill: "[-", billno: "หมูสันคอ", adate: "", debit: 31.11, credit: 307.25, at: "305.34    33.01" },
+    items: [
+      { abill: ":CR", billno: "", adate: "", debit: "", credit: "", at: "" },
+      { abill: "CR", billno: "CR0002106936", adate: "02/05 15:34", debit: 53.80, credit: 0, at: "136.0000000" },
+      { abill: "CR", billno: "CR0002106938", adate: "06/05 15:37", debit: 51.20, credit: 0, at: "136.0000000" },
+      { abill: "-", billno: "", adate: "", debit: 105.00, credit: 0, at: "" },
+      { abill: ":CT", billno: "", adate: "", debit: "", credit: "", at: "" },
+      { abill: "CT", billno: "CT0002106188", adate: "02/05 15:07", debit: 22.40, credit: 0, at: "TO:RR8881336711" },
+      { abill: "CT", billno: "CT0002106283", adate: "03/05 19:56", debit: 13.45, credit: 0, at: "TO:RR8881336776" },
+      { abill: "CT", billno: "CT0002106817", adate: "05/05 20:13", debit: 22.40, credit: 0, at: "TO:RR8881336964" },
+      { abill: "CT", billno: "CT0002107390", adate: "08/05 16:38", debit: 144.00, credit: 0, at: "TO:RR5555337441" },
+      { abill: "-", billno: "", adate: "", debit: 202.25, credit: 0, at: "" },
+      { abill: ":OS", billno: "", adate: "", debit: "", credit: "", at: "" },
+      { abill: "OS", billno: "OS022605032106", adate: "01/05 11:20", debit: 0, credit: 0.51, at: "163.0-136.0=27.0" },
+      { abill: "OS", billno: "OS022605032119", adate: "01/05 12:43", debit: 0, credit: 1.19, at: "163.0-136.0=27.0" },
+      { abill: "OS", billno: "OS022605032132", adate: "01/05 13:47", debit: 0, credit: 0.70, at: "163.0-136.0=27.0" },
+      { abill: "OS", billno: "OS022605032213", adate: "01/05 17:42", debit: 0, credit: 0.38, at: "163.0-136.0=27.0" },
+      { abill: "OS", billno: "OS022605032237", adate: "01/05 18:29", debit: 0, credit: 0.84, at: "163.0-136.0=27.0" },
+      { abill: "OS", billno: "OS022605032259", adate: "01/05 19:14", debit: 0, credit: 0.48, at: "163.0-136.0=27.0" },
+      { abill: "OS", billno: "OS022605032260", adate: "01/05 19:16", debit: 0, credit: 0.73, at: "163.0-136.0=27.0" },
+      { abill: "OS", billno: "OS022605032320", adate: "02/05 08:15", debit: 0, credit: 0.87, at: "163.0-136.0=27.0" },
+      { abill: "OS", billno: "OS022605032369", adate: "02/05 11:12", debit: 0, credit: 0.46, at: "163.0-136.0=27.0" },
+      { abill: "OS", billno: "OS022605032388", adate: "02/05 12:42", debit: 0, credit: 1.38, at: "163.0-136.0=27.0" },
+      { abill: "OS", billno: "OS022605032447", adate: "02/05 16:33", debit: 0, credit: 0.44, at: "163.0-136.0=27.0" },
+      { abill: "OS", billno: "OS022605032450", adate: "02/05 16:41", debit: 0, credit: 0.40, at: "163.0-132.9=30.1" },
+      { abill: "OS", billno: "OS022605032496", adate: "02/05 17:47", debit: 0, credit: 0.61, at: "163.0-132.9=30.1" },
+      { abill: "OS", billno: "OS022605032516", adate: "02/05 18:22", debit: 0, credit: 0.74, at: "163.0-132.9=30.1" },
+      { abill: "OS", billno: "OS022605032556", adate: "02/05 19:20", debit: 0, credit: 0.49, at: "163.0-132.9=30.1" },
+      { abill: "OS", billno: "OS022605032613", adate: "03/05 06:08", debit: 0, credit: 0.86, at: "163.0-132.9=30.1" },
+      { abill: "OS", billno: "OS022605032653", adate: "03/05 09:16", debit: 0, credit: 0.42, at: "163.0-132.9=30.1" },
+      { abill: "OS", billno: "OS022605032660", adate: "03/05 09:31", debit: 0, credit: 0.51, at: "163.0-132.9=30.1" },
+      { abill: "OS", billno: "OS022605032667", adate: "03/05 10:13", debit: 0, credit: 1.71, at: "163.0-132.9=30.1" },
+      { abill: "OS", billno: "OS022605032678", adate: "03/05 10:53", debit: 0, credit: 1.16, at: "163.0-132.9=30.1" },
+      { abill: "OS", billno: "OS022605032689", adate: "03/05 11:46", debit: 0, credit: 0.29, at: "163.0-132.9=30.1" },
+      { abill: "OS", billno: "OS022605032798", adate: "03/05 18:03", debit: 0, credit: 0.88, at: "163.0-132.9=30.1" },
+      { abill: "OS", billno: "OS022605032820", adate: "03/05 18:46", debit: 0, credit: 1.58, at: "163.0-132.9=30.1" },
+      { abill: "OS", billno: "OS022605032828", adate: "03/05 19:04", debit: 0, credit: 0.47, at: "163.0-132.9=30.1" },
+      { abill: "OS", billno: "OS022605032878", adate: "04/05 07:11", debit: 0, credit: 0.50, at: "163.0-132.9=30.1" },
+      { abill: "OS", billno: "OS022605033038", adate: "04/05 17:49", debit: 0, credit: 0.70, at: "163.0-73.9=89.1" },
+      { abill: "OS", billno: "OS022605033054", adate: "04/05 18:17", debit: 0, credit: 0.70, at: "163.0-73.9=89.1" },
+      { abill: "OS", billno: "OS022605033055", adate: "04/05 18:19", debit: 0, credit: 0.30, at: "163.0-73.9=89.1" },
+      { abill: "OS", billno: "OS022605033071", adate: "04/05 18:39", debit: 0, credit: 0.30, at: "163.0-73.9=89.1" },
+    ],
+  },
+};
+
 // ===== LISTVIEW7 — FIFO lot =====
 export const LISTVIEW7_ITEMS = [
   { lot: "1", billno: "CT0002107390", adate: "2026-05-08", debit: 144.00, calc: 33.46, cost: 100.83 },

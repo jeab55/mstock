@@ -2,11 +2,13 @@ import React, { useState } from 'react';
 
 function getRowStyle(firstCol) {
   const val = String(firstCol || '');
-  if (val.startsWith(':')) return { bg: '#B1E4F5', color: '', bold: false };
-  if (val === 'SUM' || val.startsWith('SUM')) return { bg: '#8EA583', color: '#ffffff', bold: true };
-  if (val.startsWith('+') || val.startsWith('<')) return { bg: '#C0DCC0', color: '', bold: false };
-  if (val.startsWith('-') && val.length > 1) return { bg: '', color: '#ff0000', bold: false };
-  if (val.startsWith('[')) return { bg: '#BFF0F7', color: '', bold: false };
+  if (val.startsWith(':')) return { bg: '#B1E4F5', color: '#000000', bold: false };
+  if (val === ':sum' || val === 'SUM' || val.startsWith('SUM') || val === 'sum') return { bg: '#8EA583', color: '#ffffff', bold: true };
+  if (val === '-SUM') return { bg: '#8EA583', color: '#ffffff', bold: true };
+  if (val.startsWith('+') || val.startsWith('<')) return { bg: '#C0DCC0', color: '#000000', bold: false };
+  if (val === '-') return { bg: '#ffffff', color: '#000000', bold: true }; // subtotal row
+  if (val.startsWith('-') && val.length > 1) return { bg: '#ffffff', color: '#ff0000', bold: false };
+  if (val.startsWith('[')) return { bg: '#BFF0F7', color: '#000000', bold: false };
   return { bg: '#ffffff', color: '#000000', bold: false };
 }
 
@@ -17,7 +19,7 @@ function formatNum(v) {
   return n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-export default function ListView({ columns, rows, headerRow, onRowClick, onRowDoubleClick, selectedIndex, className = '' }) {
+export default function ListView({ columns, rows, headerRow, subHeaderRow, onRowClick, onRowDoubleClick, selectedIndex, className = '' }) {
   const [hoveredIdx, setHoveredIdx] = useState(-1);
 
   return (
@@ -55,6 +57,26 @@ export default function ListView({ columns, rows, headerRow, onRowClick, onRowDo
               }}
             >
               {headerRow[col.key] !== undefined ? (typeof headerRow[col.key] === 'number' ? formatNum(headerRow[col.key]) : headerRow[col.key]) : ''}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* SubHeader row ([- row) */}
+      {subHeaderRow && (
+        <div className="flex flex-shrink-0" style={{ background: '#BFF0F7' }}>
+          {columns.map((col, ci) => (
+            <div
+              key={ci}
+              className="text-xs px-1.5 py-px border-b truncate flex-shrink-0"
+              style={{
+                width: col.width,
+                minWidth: col.width,
+                textAlign: col.align || 'left',
+                borderColor: '#f0f0f0',
+              }}
+            >
+              {subHeaderRow[col.key] !== undefined ? (typeof subHeaderRow[col.key] === 'number' ? formatNum(subHeaderRow[col.key]) : subHeaderRow[col.key]) : ''}
             </div>
           ))}
         </div>

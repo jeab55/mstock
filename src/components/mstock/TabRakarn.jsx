@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import Toolbar from './Toolbar';
 import ListView from './ListView';
-import { LISTVIEW1_HEADER, LISTVIEW1_ITEMS, LISTVIEW2_HEADER, LISTVIEW2_ITEMS, LISTVIEW7_ITEMS } from '../../data/mockData';
+import { LISTVIEW1_HEADER, LISTVIEW1_SUBHEADER, LISTVIEW1_ITEMS, LISTVIEW2_HEADER, LISTVIEW2_SUBHEADER, LISTVIEW2_ITEMS, LISTVIEW7_ITEMS } from '../../data/mockData';
 
 const LV1_COLS = [
   { key: 'mid', label: 'mid', width: 70 },
@@ -34,12 +34,14 @@ export default function TabRakarn({ onOpenType, onOpenBrand, onOpenMid }) {
   const [selectedLv1, setSelectedLv1] = useState(2); // default select 101006
 
   const toolbarButtons = [
-    { icon: '📑', label: 'ชนิด', onClick: onOpenType },
-    { icon: '🏷', label: 'ประเภท', onClick: onOpenBrand },
-    { icon: '🖨', label: 'พิมพ์ 1', onClick: () => {} },
-    { icon: '🖨', label: 'พิมพ์ 2', onClick: () => {} },
-    { icon: '❓', label: 'รหัส', onClick: onOpenMid },
-    { icon: '💲', label: 'ค้นราคา', onClick: () => {} },
+    { icon: '📑', iconKey: '📑', label: 'ชนิด', onClick: onOpenType },
+    { icon: '🏷', iconKey: '📑', label: 'ประเภท', onClick: onOpenBrand },
+    { icon: '🖨', iconKey: '🖨', label: 'พิมพ์ 1', onClick: () => {} },
+    { icon: '🖨', iconKey: '🖨', label: 'พิมพ์ 2', onClick: () => {} },
+    { icon: 'AA', iconKey: 'AA1', label: 'ส่งต่อ 1', onClick: () => {} },
+    { icon: 'AA', iconKey: 'AA2', label: 'ส่งต่อ 2', onClick: () => {} },
+    { icon: '❓', iconKey: '❓', label: 'รหัส', onClick: onOpenMid },
+    { icon: '💲', iconKey: '💲', label: 'ค้นราคา', onClick: () => {} },
   ];
 
   return (
@@ -54,6 +56,7 @@ export default function TabRakarn({ onOpenType, onOpenBrand, onOpenMid }) {
               columns={LV1_COLS}
               rows={LISTVIEW1_ITEMS}
               headerRow={LISTVIEW1_HEADER}
+              subHeaderRow={LISTVIEW1_SUBHEADER}
               selectedIndex={selectedLv1}
               onRowClick={(i) => setSelectedLv1(i)}
               className="h-full"
@@ -74,6 +77,7 @@ export default function TabRakarn({ onOpenType, onOpenBrand, onOpenMid }) {
             columns={LV2_COLS}
             rows={LISTVIEW2_ITEMS}
             headerRow={LISTVIEW2_HEADER}
+            subHeaderRow={LISTVIEW2_SUBHEADER}
             className="h-full"
           />
         </div>

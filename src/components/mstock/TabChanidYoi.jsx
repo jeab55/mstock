@@ -4,11 +4,11 @@ import ListView from './ListView';
 import { LISTVIEW5_ITEMS, LISTVIEW6_ITEMS } from '../../data/mockData';
 
 const LV5_COLS = [
-  { key: 'id', label: 'รหัส', width: 60 },
+  { key: 'id', label: 'รหัส', width: 55 },
   { key: 'name', label: 'ชนิดย่อย', width: 260 },
-  { key: 'total', label: 'คงเหลือ', width: 100, align: 'right' },
+  { key: 'total', label: 'กกเหลือ', width: 90, align: 'right' },
   { key: 'price', label: 'ราคา', width: 80, align: 'right' },
-  { key: 'value', label: 'รวม', width: 120, align: 'right' },
+  { key: 'value', label: 'รวม', width: 110, align: 'right' },
 ];
 
 const LV6_COLS = [
@@ -24,9 +24,11 @@ export default function TabChanidYoi() {
   const [drillData, setDrillData] = useState([]);
 
   const toolbarButtons = [
-    { icon: '🔍', label: 'ค้นประเภท', onClick: () => {} },
-    { icon: '🖨', label: 'พิมพ์ 1', onClick: () => {} },
-    { icon: '🖨', label: 'พิมพ์ 2', onClick: () => {} },
+    { icon: '💲', iconKey: '💲', label: 'ค้นประเภท', onClick: () => {} },
+    { icon: '🖨', iconKey: '🖨', label: 'พิมพ์ 1', onClick: () => {} },
+    { icon: '🖨', iconKey: '🖨', label: 'พิมพ์ 2', onClick: () => {} },
+    { icon: 'AA', iconKey: 'AA1', label: 'ส่งต่อ 1', onClick: () => {} },
+    { icon: 'AA', iconKey: 'AA2', label: 'ส่งต่อ 2', onClick: () => {} },
   ];
 
   const handleDoubleClick = (i, row) => {

@@ -21,10 +21,10 @@ function flattenBranches() {
 }
 
 const BRANCH_COLS = [
-  { key: 'id', label: 'id', width: 50 },
-  { key: 'code', label: 'รหัสสาขา', width: 70 },
-  { key: 'name', label: 'สาขา', width: 180 },
-  { key: 'address', label: 'ที่อยู่', width: 240 },
+  { key: 'rowid', label: 'id', width: 40 },
+  { key: 'id', label: 'รหัสสาขา', width: 70 },
+  { key: 'name', label: 'สาขา', width: 200 },
+  { key: 'address', label: 'ที่อยู่', width: 290 },
 ];
 
 const TYPE_COLS = [
@@ -88,6 +88,7 @@ export default function StockDetail() {
           rows={MTYPES}
           onSelect={() => {}}
           onClose={() => setModal(null)}
+          sqlHint="select id ,typename from mtype where typename like '%%'"
         />
       )}
       {modal === 'brand' && (
@@ -97,6 +98,7 @@ export default function StockDetail() {
           rows={BRANDS}
           onSelect={() => {}}
           onClose={() => setModal(null)}
+          sqlHint="select id ,brandname from brand where brandname like '%%'"
         />
       )}
       {modal === 'mid' && (

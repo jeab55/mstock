@@ -4,11 +4,11 @@ import ListView from './ListView';
 import { LISTVIEW3_ITEMS, LISTVIEW4_ITEMS } from '../../data/mockData';
 
 const LV3_COLS = [
-  { key: 'id', label: 'รหัส', width: 60 },
+  { key: 'id', label: 'รหัส', width: 55 },
   { key: 'name', label: 'ชนิด', width: 200 },
-  { key: 'total', label: 'คงเหลือ', width: 100, align: 'right' },
+  { key: 'total', label: 'กกเหลือ', width: 90, align: 'right' },
   { key: 'price', label: 'ราคา', width: 80, align: 'right' },
-  { key: 'value', label: 'รวม', width: 120, align: 'right' },
+  { key: 'value', label: 'รวม', width: 110, align: 'right' },
 ];
 
 const LV4_COLS = [
@@ -23,17 +23,14 @@ export default function TabChanid() {
   const [selectedLv3, setSelectedLv3] = useState(-1);
   const [drillData, setDrillData] = useState([]);
 
-  // Build rows with sum
-  const sumValue = LISTVIEW3_ITEMS.reduce((s, r) => s + r.value, 0);
-  const rowsWithSum = [
-    ...LISTVIEW3_ITEMS,
-    { id: ':sum', name: '', total: '', price: '', value: sumValue },
-  ];
+  // LISTVIEW3_ITEMS already has a ':sum' row at the end
 
   const toolbarButtons = [
-    { icon: '🔍', label: 'ค้นชนิด', onClick: () => {} },
-    { icon: '🖨', label: 'พิมพ์ 1', onClick: () => {} },
-    { icon: '🖨', label: 'พิมพ์ 2', onClick: () => {} },
+    { icon: '💲', iconKey: '💲', label: 'ค้นชนิด', onClick: () => {} },
+    { icon: '🖨', iconKey: '🖨', label: 'พิมพ์ 1', onClick: () => {} },
+    { icon: '🖨', iconKey: '🖨', label: 'พิมพ์ 2', onClick: () => {} },
+    { icon: 'AA', iconKey: 'AA1', label: 'ส่งต่อ 1', onClick: () => {} },
+    { icon: 'AA', iconKey: 'AA2', label: 'ส่งต่อ 2', onClick: () => {} },
   ];
 
   const handleDoubleClick = (i, row) => {
@@ -51,7 +48,7 @@ export default function TabChanid() {
         <div className="overflow-hidden" style={{ width: '50%' }}>
           <ListView
             columns={LV3_COLS}
-            rows={rowsWithSum}
+            rows={LISTVIEW3_ITEMS}
             selectedIndex={selectedLv3}
             onRowClick={(i) => setSelectedLv3(i)}
             onRowDoubleClick={handleDoubleClick}

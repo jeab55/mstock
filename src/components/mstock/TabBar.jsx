@@ -1,8 +1,9 @@
 import React from 'react';
+import { useAppStore } from '../../store/appStore';
 
 const TABS = [
-  { key: "rakarn", label: "รายการ" },
-  { key: "chanid", label: "ชนิด" },
+  { key: "rakarn",    label: "รายการ" },
+  { key: "chanid",    label: "ชนิด" },
   { key: "chanidyoi", label: "ชนิดย่อย" },
   { key: "tabsheet6", label: "TabSheet6" },
 ];

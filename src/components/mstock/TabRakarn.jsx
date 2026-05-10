@@ -1,84 +1,144 @@
-import React, { useState } from 'react';
+import React, { useMemo } from 'react';
 import Toolbar from './Toolbar';
 import ListView from './ListView';
-import { LISTVIEW1_HEADER, LISTVIEW1_SUBHEADER, LISTVIEW1_ITEMS, LISTVIEW2_HEADER, LISTVIEW2_SUBHEADER, LISTVIEW2_ITEMS, LISTVIEW7_ITEMS, MID_BILLS } from '../../data/mockData';
+import { useAppStore } from '../../store/appStore';
+import { buildLV1Rows, buildLV2Rows, computeFIFOLots, computeAvgPrice, computeMidStock, getMaterial } from '../../lib/calc';
+import { MATERIALS } from '../../data/mockData';
 
 const LV1_COLS = [
-  { key: 'mid', label: 'mid', width: 70 },
-  { key: 'info', label: 'Info', width: 200 },
-  { key: 'carry', label: 'Carry', width: 70, align: 'right' },
-  { key: 'debit', label: 'Debit+', width: 70, align: 'right' },
+  { key: 'mid',    label: 'mid',     width: 70 },
+  { key: 'info',   label: 'Info',    width: 200 },
+  { key: 'carry',  label: 'Carry',   width: 70, align: 'right' },
+  { key: 'debit',  label: 'Debit+',  width: 70, align: 'right' },
   { key: 'credit', label: 'Credit-', width: 70, align: 'right' },
-  { key: 'total', label: 'Total', width: 70, align: 'right' },
+  { key: 'total',  label: 'Total',   width: 70, align: 'right' },
 ];
 
 const LV2_COLS = [
-  { key: 'abill', label: 'Abill', width: 60 },
-  { key: 'billno', label: 'Billno', width: 160 },
-  { key: 'adate', label: 'Adate', width: 80 },
-  { key: 'debit', label: 'Debit+', width: 70, align: 'right' },
+  { key: 'abill',  label: 'Abill',   width: 60 },
+  { key: 'billno', label: 'Billno',  width: 160 },
+  { key: 'adate',  label: 'Adate',   width: 80 },
+  { key: 'debit',  label: 'Debit+',  width: 70, align: 'right' },
   { key: 'credit', label: 'Credit-', width: 70, align: 'right' },
-  { key: 'at', label: '@T', width: 140 },
+  { key: 'at',     label: '@T',      width: 140 },
 ];
 
 const LV7_COLS = [
-  { key: 'lot', label: 'lot', width: 40 },
+  { key: 'lot',    label: 'lot',   width: 40 },
   { key: 'billno', label: 'Billno', width: 160 },
-  { key: 'adate', label: 'Adate', width: 80 },
-  { key: 'debit', label: 'Debit', width: 70, align: 'right' },
-  { key: 'calc', label: 'Calc', width: 70, align: 'right' },
-  { key: 'cost', label: 'Cost', width: 70, align: 'right' },
+  { key: 'adate',  label: 'Adate', width: 80 },
+  { key: 'debit',  label: 'Debit', width: 70, align: 'right' },
+  { key: 'calc',   label: 'Calc',  width: 70, align: 'right' },
+  { key: 'cost',   label: 'Cost',  width: 70, align: 'right' },
 ];
 
 export default function TabRakarn({ onOpenType, onOpenBrand, onOpenMid }) {
-  const [selectedLv1, setSelectedLv1] = useState(2); // default select 101006
+  const { selectedBranch, dateRange, selectedMid, selectedMtype, selectedBrand, setSelectedMid, setStatusSecond } = useAppStore();
+  const branchid = selectedBranch.id;
+  const { from: date1, to: date2 } = dateRange;
 
-  const selectedRow = LISTVIEW1_ITEMS[selectedLv1];
-  const lv2Data = selectedRow ? (MID_BILLS[selectedRow.mid] || { header: null, subHeader: null, items: [] }) : { header: null, subHeader: null, items: [] };
+  // LV1 rows
+  const lv1Rows = useMemo(() =>
+    buildLV1Rows(branchid, date1, date2, selectedMtype || null, selectedBrand || null),
+    [branchid, date1, date2, selectedMtype, selectedBrand]
+  );
+
+  const selectedLv1Index = useMemo(() =>
+    lv1Rows.findIndex(r => r.mid === selectedMid),
+    [lv1Rows, selectedMid]
+  );
+
+  // LV1 header
+  const lv1Header = useMemo(() => {
+    const mat = getMaterial(selectedMid);
+    const stock = computeMidStock(selectedMid, branchid, date1, date2);
+    return {
+      header:    { mid: '+' + selectedBranch.name, info: mat?.info || '', carry: '', debit: date1.slice(2), credit: date2.slice(2), total: '' },
+      subHeader: { mid: '[-', info: mat?.info || '', carry: stock.carry, debit: stock.debit, credit: stock.credit, total: stock.total },
+    };
+  }, [selectedMid, selectedBranch, branchid, date1, date2]);
+
+  // LV2 rows
+  const lv2Rows = useMemo(() =>
+    buildLV2Rows(selectedMid, branchid, date1, date2),
+    [selectedMid, branchid, date1, date2]
+  );
+
+  // LV2 header
+  const lv2Header = useMemo(() => {
+    const mat = getMaterial(selectedMid);
+    const stock = computeMidStock(selectedMid, branchid, date1, date2);
+    return {
+      header:    { abill: '+' + selectedBranch.name.slice(0, 14) + '..', billno: selectedMid, adate: mat?.info || '', debit: date1.slice(2), credit: date2.slice(2), at: `${stock.carry.toFixed(2)} | ${stock.debit.toFixed(2)} | ${stock.credit.toFixed(2)} | ${stock.total.toFixed(2)}` },
+      subHeader: { abill: '[-', billno: mat?.info || '', adate: '', debit: stock.carry, credit: stock.debit, at: `${stock.credit.toFixed(2)}    ${stock.total.toFixed(2)}` },
+    };
+  }, [selectedMid, selectedBranch, branchid, date1, date2]);
+
+  // LV7 FIFO lots
+  const lv7Rows = useMemo(() =>
+    computeFIFOLots(selectedMid, branchid),
+    [selectedMid, branchid]
+  );
+
+  const avgPrice = useMemo(() => computeAvgPrice(lv7Rows), [lv7Rows]);
+
+  // Status bar update
+  const mat = getMaterial(selectedMid);
+
+  const handleLv1Click = (i, row) => {
+    if (row.mid && !row.mid.startsWith('+') && !row.mid.startsWith('[-')) {
+      setSelectedMid(row.mid);
+    }
+  };
+
+  const handleLv2DblClick = (i, row) => {
+    if (!row.billno) return;
+    const mat2 = getMaterial(selectedMid);
+    setStatusSecond(`${row.debit || row.credit} X 1 = ${mat2?.cost?.toFixed(2) || ''} [ ${row.billno} ]`);
+  };
 
   const toolbarButtons = [
-    { icon: '📑', iconKey: '📑', label: 'ชนิด', onClick: onOpenType },
+    { icon: '📑', iconKey: '📑', label: 'ชนิด',   onClick: onOpenType },
     { icon: '🏷', iconKey: '📑', label: 'ประเภท', onClick: onOpenBrand },
-    { icon: '🖨', iconKey: '🖨', label: 'พิมพ์ 1', onClick: () => {} },
-    { icon: '🖨', iconKey: '🖨', label: 'พิมพ์ 2', onClick: () => {} },
-    { icon: '❓', iconKey: '❓', label: 'รหัส', onClick: onOpenMid },
-    { icon: '💲', iconKey: '💲', label: 'ค้นราคา', onClick: () => {} },
+    { icon: '🖨', iconKey: '🖨', label: 'พิมพ์ 1', onClick: () => console.log('TODO: พิมพ์ 1') },
+    { icon: '🖨', iconKey: '🖨', label: 'พิมพ์ 2', onClick: () => console.log('TODO: พิมพ์ 2') },
+    { icon: '❓', iconKey: '❓', label: 'รหัส',    onClick: onOpenMid },
+    { icon: '💲', iconKey: '💲', label: 'ค้นราคา', onClick: () => console.log('TODO: ค้นราคา') },
   ];
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       <Toolbar buttons={toolbarButtons} />
       <div className="flex-1 flex overflow-hidden">
-        {/* Left side: LV1 + LV7 */}
+        {/* Left: LV1 + LV7 */}
         <div className="flex flex-col overflow-hidden" style={{ width: '56%' }}>
-          {/* ListView1 — 70% height */}
           <div className="overflow-hidden" style={{ height: '70%' }}>
             <ListView
               columns={LV1_COLS}
-              rows={LISTVIEW1_ITEMS}
-              headerRow={LISTVIEW1_HEADER}
-              subHeaderRow={LISTVIEW1_SUBHEADER}
-              selectedIndex={selectedLv1}
-              onRowClick={(i) => setSelectedLv1(i)}
+              rows={lv1Rows}
+              headerRow={lv1Header.header}
+              subHeaderRow={lv1Header.subHeader}
+              selectedIndex={selectedLv1Index}
+              onRowClick={handleLv1Click}
               className="h-full"
             />
           </div>
-          {/* ListView7 — 30% height */}
           <div className="overflow-hidden" style={{ height: '30%' }}>
             <ListView
               columns={LV7_COLS}
-              rows={LISTVIEW7_ITEMS}
+              rows={lv7Rows}
               className="h-full"
             />
           </div>
         </div>
-        {/* Right side: LV2 — full height */}
+        {/* Right: LV2 */}
         <div className="overflow-hidden flex flex-col" style={{ width: '44%' }}>
           <ListView
             columns={LV2_COLS}
-            rows={lv2Data.items}
-            headerRow={lv2Data.header}
-            subHeaderRow={lv2Data.subHeader}
+            rows={lv2Rows}
+            headerRow={lv2Header.header}
+            subHeaderRow={lv2Header.subHeader}
+            onRowDoubleClick={handleLv2DblClick}
             className="h-full"
           />
         </div>

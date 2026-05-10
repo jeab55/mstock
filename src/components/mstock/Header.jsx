@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { ChevronDown, User } from 'lucide-react';
+import { useAppStore } from '../../store/appStore';
 
 const COMPANIES = ["MMM", "TUR", "MMD"];
 
 export default function Header() {
-  const [company, setCompany] = useState("MMM");
+  const { selectedCompany, setCompany } = useAppStore();
   const [open, setOpen] = useState(false);
 
   return (
@@ -19,7 +20,7 @@ export default function Header() {
             onClick={() => setOpen(!open)}
             className="flex items-center gap-1 px-3 py-1 text-white text-xs border border-gray-600 rounded-sm hover:bg-gray-700"
           >
-            {company} <ChevronDown className="w-3 h-3" />
+            {selectedCompany} <ChevronDown className="w-3 h-3" />
           </button>
           {open && (
             <div className="absolute right-0 top-full mt-1 bg-white border border-gray-400 shadow-md z-50">

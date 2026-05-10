@@ -1,22 +1,74 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { FolderOpen, ChevronLeft, ChevronRight, Equal } from 'lucide-react';
+import { useAppStore } from '../../store/appStore';
 
-export default function TopFilter({ branch, onOpenBranch }) {
+const MONTH_NAMES = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+
+function fmt(d) { return d.toISOString().slice(0, 10); }
+function parseDate(s) { return new Date(s + 'T00:00:00'); }
+
+// ISO week number
+function getWeek(d) {
+  const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  date.setUTCDate(date.getUTCDate() + 4 - (date.getUTCDay() || 7));
+  const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+  return Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
+}
+
+function weekRange(year, week) {
+  const jan4 = new Date(Date.UTC(year, 0, 4));
+  const startOfWeek1 = new Date(jan4);
+  startOfWeek1.setUTCDate(jan4.getUTCDate() - (jan4.getUTCDay() || 7) + 1);
+  const mon = new Date(startOfWeek1);
+  mon.setUTCDate(startOfWeek1.getUTCDate() + (week - 1) * 7);
+  const sun = new Date(mon);
+  sun.setUTCDate(mon.getUTCDate() + 6);
+  return { from: fmt(mon), to: fmt(sun) };
+}
+
+export default function TopFilter({ onOpenBranch }) {
+  const { selectedBranch, dateRange, setDateRange } = useAppStore();
+
+  const d1 = parseDate(dateRange.from);
+  const curMonth = d1.getMonth();
+  const curYear  = d1.getFullYear();
+  const curWeek  = getWeek(d1);
+
+  const setMonth = (m, y) => {
+    const first = new Date(y, m, 1);
+    const last  = new Date(y, m + 1, 0);
+    setDateRange({ from: fmt(first), to: fmt(last) });
+  };
+
+  const setYear = (y) => {
+    setMonth(curMonth, y);
+  };
+
+  const setWeek = (w) => {
+    const range = weekRange(curYear, w);
+    setDateRange(range);
+  };
+
+  const shiftDate1 = (delta) => {
+    const d = parseDate(dateRange.from);
+    d.setDate(d.getDate() + delta);
+    setDateRange({ ...dateRange, from: fmt(d) });
+  };
+
+  const setEqualDates = () => {
+    setDateRange({ from: dateRange.from, to: dateRange.from });
+  };
+
+  const handleFrom = (e) => setDateRange({ ...dateRange, from: e.target.value });
+  const handleTo   = (e) => setDateRange({ ...dateRange, to: e.target.value });
+
   return (
     <div className="h-11 flex items-center gap-1 px-2 flex-shrink-0 overflow-x-auto" style={{ background: '#F9CBAC' }}>
       {/* Branch label */}
-      <div
-        className="px-2 py-0.5 text-xs border border-gray-400 min-w-[140px] truncate"
-        style={{ background: '#FFFFE1' }}
-      >
-        {branch}
+      <div className="px-2 py-0.5 text-xs border border-gray-400 min-w-[140px] truncate" style={{ background: '#FFFFE1' }}>
+        {selectedBranch.name}
       </div>
-      {/* Branch button */}
-      <button
-        onClick={onOpenBranch}
-        className="delphi-btn flex items-center gap-1 text-xs px-2 py-0.5"
-        style={{ background: '#c0dcc0' }}
-      >
+      <button onClick={onOpenBranch} className="delphi-btn flex items-center gap-1 text-xs px-2 py-0.5" style={{ background: '#c0dcc0' }}>
         <FolderOpen className="w-3 h-3" /> สาขา
       </button>
 
@@ -24,37 +76,46 @@ export default function TopFilter({ branch, onOpenBranch }) {
 
       {/* สัปดาห์ */}
       <span className="text-xs whitespace-nowrap">สัปดาห์</span>
-      <button className="delphi-btn px-1"><ChevronLeft className="w-3 h-3" /></button>
-      <input type="number" defaultValue={19} className="w-10 text-xs text-center border border-gray-400 bg-white px-1" />
-      <button className="delphi-btn px-1"><ChevronRight className="w-3 h-3" /></button>
+      <button className="delphi-btn px-1" onClick={() => setWeek(Math.max(1, curWeek - 1))}><ChevronLeft className="w-3 h-3" /></button>
+      <input
+        type="number"
+        className="w-10 text-xs text-center border border-gray-400 bg-white px-1"
+        value={curWeek}
+        onChange={e => setWeek(Number(e.target.value))}
+      />
+      <button className="delphi-btn px-1" onClick={() => setWeek(curWeek + 1)}><ChevronRight className="w-3 h-3" /></button>
 
       {/* เดือน */}
       <span className="text-xs ml-1 whitespace-nowrap">เดือน</span>
-      <select className="text-xs border border-gray-400 bg-white px-1 py-0.5">
-        <option>มกราคม</option><option>กุมภาพันธ์</option><option>มีนาคม</option>
-        <option>เมษายน</option><option selected>พฤษภาคม</option><option>มิถุนายน</option>
-        <option>กรกฎาคม</option><option>สิงหาคม</option><option>กันยายน</option>
-        <option>ตุลาคม</option><option>พฤศจิกายน</option><option>ธันวาคม</option>
+      <select
+        className="text-xs border border-gray-400 bg-white px-1 py-0.5"
+        value={curMonth}
+        onChange={e => setMonth(Number(e.target.value), curYear)}
+      >
+        {MONTH_NAMES.map((mn, i) => <option key={i} value={i}>{mn}</option>)}
       </select>
 
       {/* ปี */}
       <span className="text-xs ml-1 whitespace-nowrap">ปี</span>
-      <select className="text-xs border border-gray-400 bg-white px-1 py-0.5">
-        <option>2025</option><option selected>2026</option><option>2027</option>
+      <select
+        className="text-xs border border-gray-400 bg-white px-1 py-0.5"
+        value={curYear}
+        onChange={e => setYear(Number(e.target.value))}
+      >
+        {[2024,2025,2026,2027].map(y => <option key={y} value={y}>{y}</option>)}
       </select>
 
       <div className="w-px h-6 bg-gray-500 mx-1" />
 
       {/* วันที่ */}
       <span className="text-xs whitespace-nowrap">วันที่</span>
-      <input type="text" defaultValue="01/05/2569" className="w-[85px] text-xs border border-gray-400 bg-white px-1 text-center" />
+      <input type="date" value={dateRange.from} onChange={handleFrom} className="w-[105px] text-xs border border-gray-400 bg-white px-1 text-center" />
       <span className="text-xs whitespace-nowrap">ถึง</span>
-      <input type="text" defaultValue="31/05/2569" className="w-[85px] text-xs border border-gray-400 bg-white px-1 text-center" />
+      <input type="date" value={dateRange.to} onChange={handleTo}   className="w-[105px] text-xs border border-gray-400 bg-white px-1 text-center" />
 
-      {/* nav buttons */}
-      <button className="delphi-btn px-1"><ChevronLeft className="w-3 h-3" /></button>
-      <button className="delphi-btn px-1"><ChevronRight className="w-3 h-3" /></button>
-      <button className="delphi-btn px-1"><Equal className="w-3 h-3" /></button>
+      <button className="delphi-btn px-1" onClick={() => shiftDate1(-1)}><ChevronLeft className="w-3 h-3" /></button>
+      <button className="delphi-btn px-1" onClick={() => shiftDate1(1)}><ChevronRight className="w-3 h-3" /></button>
+      <button className="delphi-btn px-1" onClick={setEqualDates}><Equal className="w-3 h-3" /></button>
     </div>
   );
 }

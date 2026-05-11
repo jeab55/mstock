@@ -184,6 +184,7 @@ Deno.serve(async (req) => {
       }
 
       // Get cost from material, price3 from POS.material_{branchcode} if available
+      // T field: for CR/AP use stockcard.T (unit cost), for others use material.cost
       const rows = await query(company, `
         SELECT
           SUBSTRING(a.billno, 1, 2) AS abill,
@@ -191,7 +192,7 @@ Deno.serve(async (req) => {
           a.stockdate,
           a.debit,
           a.credit,
-          a.REF AS T,
+          a.T AS T,
           gm.cost,
           COALESCE(pm.price3, gm.price3, 0) AS sale_price
         FROM stockcard a

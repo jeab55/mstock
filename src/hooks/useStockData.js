@@ -80,15 +80,20 @@ export function useLV2() {
         // Helper: calc value by doctype
         const calcValue = (row) => {
           const ab = row.abill.toUpperCase();
-          const cost = parseFloat(row.cost) || 0;
+          const T = parseFloat(row.T) || 0;  // unit price from stockcard.T
+          const cost = parseFloat(row.cost) || 0;  // base cost from material
           const salePrice = parseFloat(row.sale_price) || 0;
           const deb = parseFloat(row.debit) || 0;
           const cred = parseFloat(row.credit) || 0;
 
-          if (ab === 'CR' || ab === 'AP' || ab === 'CT') return deb * cost;
-          if (ab === 'OS') return (salePrice - cost) * cred; // profit
-          if (ab === 'WS') return -(cred * cost); // loss, negative
-          return (deb - cred) * cost; // default
+          // For CR/AP/CT: use T (unit cost from stockcard.T)
+          if (ab === 'CR' || ab === 'AP' || ab === 'CT') return deb * T;
+          // For OS: profit = (sale_price - T) × qty (T is base cost here)
+          if (ab === 'OS') return (salePrice - T) * cred;
+          // For WS: loss = -(T × qty) 
+          if (ab === 'WS') return -(cred * T);
+          // Default: use T
+          return (deb - cred) * T;
         };
 
         // Group by abill
@@ -111,45 +116,46 @@ export function useLV2() {
           let groupQtyD = 0, groupQtyC = 0, groupValue = 0, groupSaleTotal = 0, groupCostTotal = 0, groupProfitTotal = 0;
 
           for (const m of g) {
-            const adateStr = String(m.stockdate || m.adate || '');
-            const dateStr  = adateStr.slice(5, 10).replace('-', '/');
-            const timeStr  = adateStr.length > 10 ? adateStr.slice(11, 16) : '';
-            const d = parseFloat(m.debit)  || 0;
-            const c = parseFloat(m.credit) || 0;
-            const cost = parseFloat(m.cost) || 0;
-            const salePrice = parseFloat(m.sale_price) || 0;
+           const adateStr = String(m.stockdate || m.adate || '');
+           const dateStr  = adateStr.slice(5, 10).replace('-', '/');
+           const timeStr  = adateStr.length > 10 ? adateStr.slice(11, 16) : '';
+           const d = parseFloat(m.debit)  || 0;
+           const c = parseFloat(m.credit) || 0;
+           const T = parseFloat(m.T) || 0;  // unit price from stockcard.T
+           const cost = parseFloat(m.cost) || 0;
+           const salePrice = parseFloat(m.sale_price) || 0;
 
-            let value = calcValue(m);
-            groupValue += value;
+           let value = calcValue(m);
+           groupValue += value;
 
-            // Track for OS special subtotal
-            if (ab === 'OS') {
-              groupSaleTotal += salePrice * c;
-              groupCostTotal += cost * c;
-              groupProfitTotal += value;
-              totalIncome += salePrice * c;
-              totalCost += cost * c;
-              totalProfit += value;
-            } else {
-              totalIncome += value;
-              if (ab !== 'WS') totalCost += d * cost;
-            }
+           // Track for OS special subtotal
+           if (ab === 'OS') {
+             groupSaleTotal += salePrice * c;
+             groupCostTotal += T * c;  // use T not cost
+             groupProfitTotal += value;
+             totalIncome += salePrice * c;
+             totalCost += T * c;
+             totalProfit += value;
+           } else {
+             totalIncome += value;
+             if (ab !== 'WS') totalCost += d * T;  // use T not cost
+           }
 
-            groupQtyD += d;
-            groupQtyC += c;
+           groupQtyD += d;
+           groupQtyC += c;
 
-            result.push({
-              _isRow: true,
-              abill:  ab,
-              billno: m.billno,
-              adate:  dateStr + (timeStr ? ' ' + timeStr : ''),
-              debit:  d > 0 ? d : '',
-              credit: c > 0 ? c : '',
-              at:     m.T || m.refinfo || '',
-              value,
-              cost,
-              salePrice,
-            });
+           result.push({
+             _isRow: true,
+             abill:  ab,
+             billno: m.billno,
+             adate:  dateStr + (timeStr ? ' ' + timeStr : ''),
+             debit:  d > 0 ? d : '',
+             credit: c > 0 ? c : '',
+             at:     T ? T.toFixed(2) : '',  // display T as unit price
+             value,
+             cost,
+             salePrice,
+           });
           }
 
           // Subtotal row

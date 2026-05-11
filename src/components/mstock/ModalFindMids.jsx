@@ -1,13 +1,17 @@
 /**
- * ModalFindMids — ค้นราคาสินค้าหลายตัว (ใส่ mid หลายตัวคั่นด้วย comma/space/newline)
+ * ModalFindMids — ค้นราคาสินค้าหลายตัว (ใส่ mid หลายตัวคั่นด้วย comma/space/newline หรือใช้ AI)
  */
 import React, { useState, useRef, useEffect } from 'react';
-import { X } from 'lucide-react';
+import { X, Wand2 } from 'lucide-react';
 import { useAppStore } from '../../store/appStore';
+import { base44 } from '@/api/base44Client';
+import { toast } from 'sonner';
 
 export default function ModalFindMids({ onClose }) {
-  const { setCustomMidList } = useAppStore();
+  const { setCustomMidList, selectedCompany } = useAppStore();
   const [input, setInput] = useState('');
+  const [aiQuery, setAiQuery] = useState('');
+  const [aiLoading, setAiLoading] = useState(false);
   const textareaRef = useRef();
 
   useEffect(() => {
@@ -27,8 +31,32 @@ export default function ModalFindMids({ onClose }) {
     onClose();
   };
 
+  const handleAISearch = async () => {
+    if (!aiQuery.trim()) return;
+    setAiLoading(true);
+    try {
+      const res = await base44.functions.invoke('searchProductByDescription', {
+        company: selectedCompany,
+        description: aiQuery
+      });
+      const mids = res.data?.mids || [];
+      if (mids.length === 0) {
+        toast.warning('ไม่พบรหัสสินค้า');
+        return;
+      }
+      setInput(mids.join(', '));
+      setAiQuery('');
+      toast.success(`พบ ${mids.length} รหัสสินค้า`);
+    } catch (e) {
+      toast.error('AI search ล้มเหลว: ' + e.message);
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
   const handleClear = () => {
     setInput('');
+    setAiQuery('');
     textareaRef.current?.focus();
   };
 
@@ -52,17 +80,43 @@ export default function ModalFindMids({ onClose }) {
 
         {/* Content */}
         <div className="flex flex-col gap-3 p-4 flex-1 overflow-auto">
+          {/* AI Search */}
           <div>
-            <label className="text-xs text-gray-700 mb-1 block">
-              ใส่รหัสสินค้า (mid) คั่นด้วย , (comma) หรือเว้นวรรค หรือขึ้นบรรทัดใหม่
+            <label className="text-xs text-gray-700 mb-1 block font-semibold">🤖 AI ค้นหาสินค้า</label>
+            <div className="flex gap-2 mb-3">
+              <input
+                type="text"
+                className="flex-1 border border-gray-400 bg-white px-2 py-1 text-xs"
+                value={aiQuery}
+                onChange={(e) => setAiQuery(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleAISearch()}
+                placeholder="เช่น 'ผักกินกับน้ำพริก' หรือ 'ไก่'"
+                disabled={aiLoading}
+              />
+              <button
+                onClick={handleAISearch}
+                disabled={aiLoading || !aiQuery.trim()}
+                className="delphi-btn px-3 py-1 text-xs flex items-center gap-1"
+                style={{ background: aiLoading ? '#ccc' : '#7b9fc7', color: '#fff', border: '1px solid #336699' }}
+              >
+                <Wand2 className="w-3 h-3" />
+                {aiLoading ? 'ค้น...' : 'ค้น'}
+              </button>
+            </div>
+          </div>
+
+          {/* Manual input */}
+          <div>
+            <label className="text-xs text-gray-700 mb-1 block font-semibold">
+              หรือใส่รหัสสินค้า (mid) ด้วยมือ
             </label>
             <textarea
               ref={textareaRef}
               className="w-full border border-gray-400 bg-white p-2 text-xs font-mono"
-              style={{ height: '100px', resize: 'none' }}
+              style={{ height: '80px', resize: 'none' }}
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="101008,101115,101116&#10;หรือ&#10;101008 101115 101116&#10;หรือบรรทัดละตัว"
+              placeholder="101008,101115,101116&#10;หรือ&#10;101008 101115 101116"
             />
           </div>
 
@@ -82,8 +136,9 @@ export default function ModalFindMids({ onClose }) {
           </button>
           <button
             onClick={handleSearch}
+            disabled={!input.trim()}
             className="delphi-btn px-4 py-1 text-xs"
-            style={{ background: '#7b9fc7', color: '#fff', border: '1px solid #336699' }}
+            style={{ background: input.trim() ? '#7b9fc7' : '#ccc', color: '#fff', border: '1px solid #336699' }}
           >
             ค้นหา
           </button>

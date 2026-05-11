@@ -170,39 +170,40 @@ Deno.serve(async (req) => {
 
     // ── movements (LV2) — Delphi exact SQL + cost, price3 ──────────────────────────────────
     if (action === 'movements') {
-      const { branch, mid, brand, branchcode, from: date1, to: date2 } = params;
-      if (!branch || !mid || !date1 || !date2) return Response.json({ error: 'branch, mid, from, to required' }, { status: 400 });
+    const { branch, mid, brand, branchcode, from: date1, to: date2 } = params;
+    if (!branch || !mid || !date1 || !date2) return Response.json({ error: 'branch, mid, from, to required' }, { status: 400 });
 
-      const d1time = `${date1} 00:00:00`;
-      const d2time = `${date2} 23:59:59`;
-      const args = [d1time, d2time, Number(branch), mid];
+    const d1time = `${date1} 00:00:00`;
+    const d2time = `${date2} 23:59:59`;
+    const args = [d1time, d2time, Number(branch), mid];
 
-      let where = `WHERE a.stockdate BETWEEN ? AND ? AND a.branchid = ? AND a.mid = ?`;
-      if (brand) {
-        where = `WHERE a.stockdate BETWEEN ? AND ? AND a.branchid = ? AND a.mid = ? AND gm.brand = ?`;
-        args.push(Number(brand));
-      }
+    let where = `WHERE a.stockdate BETWEEN ? AND ? AND a.branchid = ? AND a.mid = ?`;
+    if (brand) {
+      where = `WHERE a.stockdate BETWEEN ? AND ? AND a.branchid = ? AND a.mid = ? AND gm.brand = ?`;
+      args.push(Number(brand));
+    }
 
-      // cost: stockcard.cost (unit cost per row)
-      // sale_price: POS.material_{branchcode}.price3 (for OS profit calc)
-      const rows = await query(company, `
-        SELECT
-          SUBSTRING(a.billno, 1, 2) AS abill,
-          a.billno,
-          a.stockdate,
-          a.debit,
-          a.credit,
-          a.cost,
-          COALESCE(pm.price3, gm.price3, 0) AS sale_price
-        FROM stockcard a
-        INNER JOIN material gm ON a.mid = gm.mid
-        LEFT JOIN ${branchcode ? `POS.material_${branchcode}` : 'material'} pm ON a.mid = pm.mid
-        INNER JOIN mtype t ON t.id = gm.typeid
-        ${where}
-        ORDER BY a.billno, a.stockdate
-      `, args);
+    // cost: fallback COALESCE(NULLIF(stockcard.cost,0), POS.material_{branchcode}.cost, material.cost, 0)
+    // — handles OS rows where cost=0 by using branch or global material cost
+    // sale_price: POS.material_{branchcode}.price3 (for OS profit calc)
+    const rows = await query(company, `
+      SELECT
+        SUBSTRING(a.billno, 1, 2) AS abill,
+        a.billno,
+        a.stockdate,
+        a.debit,
+        a.credit,
+        COALESCE(NULLIF(a.cost, 0), pm.cost, gm.cost, 0) AS cost,
+        COALESCE(pm.price3, gm.price3, 0) AS sale_price
+      FROM stockcard a
+      INNER JOIN material gm ON a.mid = gm.mid
+      LEFT JOIN ${branchcode ? `POS.material_${branchcode}` : 'material'} pm ON a.mid = pm.mid
+      INNER JOIN mtype t ON t.id = gm.typeid
+      ${where}
+      ORDER BY a.billno, a.stockdate
+    `, args);
 
-      return Response.json({ rows });
+    return Response.json({ rows });
     }
 
     // ── lots (LV7 FIFO) — Delphi exact SQL ──────────────────────────────────

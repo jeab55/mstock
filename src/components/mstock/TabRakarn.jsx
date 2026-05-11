@@ -140,14 +140,14 @@ export default function TabRakarn({ onOpenBrand, onOpenMid, onOpenMsubtype }) {
 
   const noDataTip = !hasData ? 'ไม่มีข้อมูลให้พิมพ์/ส่งออก' : undefined;
   const toolbarButtons = [
-    { icon: '📑', iconKey: '📑', label: 'ชนิด',    onClick: onOpenBrand },
-    { icon: '📋', iconKey: '📋', label: 'ประเภท',  onClick: onOpenMsubtype, disabled: !selectedMtype, title: !selectedMtype ? 'เลือกชนิดก่อน' : undefined },
-    { icon: '🖨', iconKey: '🖨', label: 'พิมพ์ย่อ',  onClick: handlePrint1,  disabled: !hasData || !!busy, loading: busy === 'p1', title: noDataTip || 'พิมพ์รายงานสต๊อกแบบกะทัดรัด A4 ตั้ง' },
-    { icon: '🖨', iconKey: '🖨', label: 'พิมพ์ละเอียด',  onClick: handlePrint2,  disabled: !hasData || !!busy, loading: busy === 'p2', title: noDataTip || 'พิมพ์รายงานพร้อมรายละเอียดการเคลื่อนไหว' },
-    { icon: '📤', iconKey: '📤', label: 'Excel', onClick: handleExcel,   disabled: !hasData || !!busy, loading: busy === 'e1', title: noDataTip || 'ส่งออกเป็นไฟล์ Excel (.xlsx)' },
-    { icon: '📄', iconKey: '📄', label: 'PDF', onClick: handlePDF,     disabled: !hasData || !!busy, loading: busy === 'e2', title: noDataTip || 'ส่งออกเป็นไฟล์ PDF' },
-    { icon: '❓', iconKey: '❓', label: 'ค้นรหัส',     onClick: onOpenMid, title: 'ค้นหารหัสสินค้า' },
-    { icon: '💲', iconKey: '💲', label: 'ค้นราคา',  onClick: () => {}, title: 'ค้นหาข้อมูลราคา' },
+    { icon: '📑', iconKey: '📑', label: 'ชนิด',    onClick: onOpenBrand, group: 0 },
+    { icon: '📋', iconKey: '📋', label: 'ประเภท',  onClick: onOpenMsubtype, disabled: !selectedMtype, title: !selectedMtype ? 'เลือกชนิดก่อน' : undefined, group: 0 },
+    { icon: '🖨', iconKey: '🖨', label: 'พิมพ์ย่อ',  onClick: handlePrint1,  disabled: !hasData || !!busy, loading: busy === 'p1', title: noDataTip || 'พิมพ์รายงานสต๊อกแบบกะทัดรัด A4 ตั้ง', group: 1 },
+    { icon: '🖨', iconKey: '🖨', label: 'พิมพ์ละเอียด',  onClick: handlePrint2,  disabled: !hasData || !!busy, loading: busy === 'p2', title: noDataTip || 'พิมพ์รายงานพร้อมรายละเอียดการเคลื่อนไหว', group: 1 },
+    { icon: '📤', iconKey: '📤', label: 'Excel', onClick: handleExcel,   disabled: !hasData || !!busy, loading: busy === 'e1', title: noDataTip || 'ส่งออกเป็นไฟล์ Excel (.xlsx)', group: 2 },
+    { icon: '📄', iconKey: '📄', label: 'PDF', onClick: handlePDF,     disabled: !hasData || !!busy, loading: busy === 'e2', title: noDataTip || 'ส่งออกเป็นไฟล์ PDF', group: 2 },
+    { icon: '❓', iconKey: '❓', label: 'ค้นรหัส',     onClick: onOpenMid, title: 'ค้นหารหัสสินค้า', group: 3 },
+    { icon: '💲', iconKey: '💲', label: 'ค้นราคา',  onClick: () => {}, title: 'ค้นหาข้อมูลราคา', group: 3 },
   ];
 
   return (

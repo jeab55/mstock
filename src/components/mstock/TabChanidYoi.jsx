@@ -30,9 +30,9 @@ export default function TabChanidYoi() {
   const { rows: lv6Rows, loading: lv6Loading } = useLV6(selectedBrandid);
 
   const toolbarButtons = [
-    { icon: '💲', iconKey: '💲', label: 'ค้นประเภท', onClick: () => {}, title: 'ค้นหาข้อมูลประเภทสินค้า' },
-    { icon: '🖨', iconKey: '🖨', label: 'พิมพ์ย่อ',   onClick: () => {}, title: 'พิมพ์รายงานแบบกะทัดรัด' },
-    { icon: '🖨', iconKey: '🖨', label: 'พิมพ์ละเอียด',   onClick: () => {}, title: 'พิมพ์รายงานแบบละเอียด' },
+    { icon: '💲', iconKey: '💲', label: 'ค้นประเภท', onClick: () => {}, title: 'ค้นหาข้อมูลประเภทสินค้า', group: 0 },
+    { icon: '🖨', iconKey: '🖨', label: 'พิมพ์ย่อ',   onClick: () => {}, title: 'พิมพ์รายงานแบบกะทัดรัด', group: 1 },
+    { icon: '🖨', iconKey: '🖨', label: 'พิมพ์ละเอียด',   onClick: () => {}, title: 'พิมพ์รายงานแบบละเอียด', group: 1 },
   ];
 
   const handleLv5Click = (i, row) => {

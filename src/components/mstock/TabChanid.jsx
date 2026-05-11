@@ -30,9 +30,9 @@ export default function TabChanid() {
   const { rows: lv4Rows, loading: lv4Loading } = useLV4(selectedTypeid);
 
   const toolbarButtons = [
-    { icon: '💲', iconKey: '💲', label: 'ค้นชนิด', onClick: () => {}, title: 'ค้นหาข้อมูลชนิดสินค้า' },
-    { icon: '🖨', iconKey: '🖨', label: 'พิมพ์ย่อ',  onClick: () => {}, title: 'พิมพ์รายงานแบบกะทัดรัด' },
-    { icon: '🖨', iconKey: '🖨', label: 'พิมพ์ละเอียด',  onClick: () => {}, title: 'พิมพ์รายงานแบบละเอียด' },
+    { icon: '💲', iconKey: '💲', label: 'ค้นชนิด', onClick: () => {}, title: 'ค้นหาข้อมูลชนิดสินค้า', group: 0 },
+    { icon: '🖨', iconKey: '🖨', label: 'พิมพ์ย่อ',  onClick: () => {}, title: 'พิมพ์รายงานแบบกะทัดรัด', group: 1 },
+    { icon: '🖨', iconKey: '🖨', label: 'พิมพ์ละเอียด',  onClick: () => {}, title: 'พิมพ์รายงานแบบละเอียด', group: 1 },
   ];
 
   const handleLv3Click = (i, row) => {

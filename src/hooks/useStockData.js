@@ -68,10 +68,11 @@ export function useLV2() {
     const mid        = selectedMid;
     const brand      = selectedBrand;
 
+    console.log('[useLV2] fetch →', { company, branchId, mid, from, to });
     let cancelled = false;
     setLoading(true);
 
-    api.movements(company, branchId, branchcode, mid, brand, from, to)
+    api.movements(company, branchId, branchcode, mid, null, from, to)
       .then(data => {
         if (cancelled) return;
         const moves = data.rows || [];
@@ -102,8 +103,9 @@ export function useLV2() {
         const result = [];
         let totalIncome = 0, totalCost = 0, totalProfit = 0;
 
+        console.log('[useLV2] processing', order.length, 'groups from', moves.length, 'movements');
         for (const ab of order) {
-          const g = g = groups[ab];
+          const g = groups[ab];
           result.push({ _isGroupHeader: true, abill: ':' + ab, billno: '', adate: '', debit: '', credit: '', at: '', value: '' });
 
           let groupQtyD = 0, groupQtyC = 0, groupValue = 0, groupSaleTotal = 0, groupCostTotal = 0, groupProfitTotal = 0;
@@ -176,6 +178,7 @@ export function useLV2() {
           }
         }
 
+        console.log('[useLV2] result', result.length, 'rows, footerData:', { totalIncome, totalCost, totalProfit });
         setRows(result);
         setFooterData({
           totalIncome,
@@ -186,13 +189,14 @@ export function useLV2() {
       })
       .catch(e => {
         if (cancelled) return;
+        console.error('[useLV2] error:', e);
         toast.error('โหลด LV2 ล้มเหลว: ' + e.message);
         setRows([]);
       })
       .finally(() => { if (!cancelled) setLoading(false); });
 
     return () => { cancelled = true; };
-  }, [selectedCompany, selectedBranch.id, selectedBranch.code, dateRange.from, dateRange.to, selectedMid, selectedBrand]);
+  }, [selectedCompany, selectedBranch.id, selectedBranch.code, dateRange.from, dateRange.to, selectedMid]);
 
   return { rows, footerData, loading };
 }

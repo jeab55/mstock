@@ -259,6 +259,70 @@ export function exportPDF(lv1Rows, { selectedBranch, dateRange, selectedMtype, s
   doc.save(`Stock_${selectedBranch.id}_${mtName}_${date1}-${date2}.pdf`);
 }
 
+// ─── Print 2: LV2 detailed (movements of selected mid) landscape ─────────────────────────────────
+export function printLV2(lv2Rows, { selectedBranch, selectedMid, selectedMidInfo, dateRange, user, footerData }) {
+  if (!selectedMid) return;
+  const { from: date1, to: date2 } = dateRange;
+  const printDate = new Date().toLocaleDateString('th-TH');
+  const userName = user?.full_name || user?.email || '-';
+
+  // Filter data rows (skip _isGroupHeader, _isSubtotal flags)
+  const dataRows = lv2Rows.filter(r => !r._isGroupHeader && !r._isSubtotal && r._isRow);
+  
+  // Build group sections
+  let bodyHtml = '';
+  const groups = {};
+  const order = [];
+  for (const r of dataRows) {
+    const ab = r.abill.toUpperCase();
+    if (!groups[ab]) { groups[ab] = []; order.push(ab); }
+    groups[ab].push(r);
+  }
+
+  for (const ab of order) {
+    const g = groups[ab];
+    let groupTotal = 0, groupQtyD = 0, groupQtyC = 0;
+    const rows = g.map(r => {
+      groupTotal += r.value || 0;
+      groupQtyD += r.debit || 0;
+      groupQtyC += r.credit || 0;
+      const color = r.value < 0 ? '#ff0000' : (r.value > 0 ? '#008000' : '#000000');
+      return `<tr><td>${r.abill}</td><td>${r.billno}</td><td>${r.adate}</td><td class="num">${fmt2(r.debit)}</td><td class="num">${fmt2(r.credit)}</td><td>${r.at || ''}</td><td class="num" style="color:${color}">${fmt2(r.value)}</td></tr>`;
+    }).join('');
+    
+    const subtotalRow = `<tr style="background:#FFF9C4;font-weight:bold;"><td colspan="3">Subtotal ${ab}</td><td class="num">${fmt2(groupQtyD)}</td><td class="num">${fmt2(groupQtyC)}</td><td></td><td class="num">${fmt2(groupTotal)}</td></tr>`;
+    bodyHtml += `<table><thead><tr><th>ประเภท</th><th>เลขที่บิล</th><th>วันที่</th><th class="num">รับเข้า</th><th class="num">จ่ายออก</th><th>อ้างอิง</th><th class="num">มูลค่า (บาท)</th></tr></thead><tbody>${rows}${subtotalRow}</tbody></table>`;
+  }
+
+  const footerHtml = footerData ? `<div class="footer">รวมรับเข้า: ${footerData.totalIncome.toFixed(2)} บาท | รวมขาย: ${footerData.totalCost.toFixed(2)} บาท | กำไรรวม: ${footerData.totalProfit.toFixed(2)} บาท (ROI: ${footerData.roi.toFixed(1)}%)</div>` : '';
+
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
+  <title>รายงานการเคลื่อนไหวสินค้า</title>
+  <style>
+    @page { size: A4 landscape; margin: 12mm; }
+    body { font-family: Tahoma, Arial, sans-serif; font-size: 9pt; color: #000; }
+    h2 { margin: 0; font-size: 11pt; }
+    .sub { font-size: 8pt; color: #444; margin: 1px 0; }
+    table { width: 100%; border-collapse: collapse; margin-top: 6px; }
+    th { background: #d4d0c8; border: 1px solid #999; padding: 3px 5px; text-align: left; font-size: 8pt; }
+    td { border: 1px solid #bbb; padding: 2px 5px; font-size: 8pt; }
+    .num { text-align: right; font-variant-numeric: tabular-nums; }
+    .footer { background: #f0f0f0; border-top: 1px solid #999; padding: 4px; font-size: 9pt; margin-top: 8px; }
+    @media print { button { display: none; } }
+  </style></head><body>
+  <h2>รายงานการเคลื่อนไหวสินค้า — ${selectedBranch.name}</h2>
+  <div class="sub">รหัสสินค้า: ${selectedMid} | ชื่อ: ${selectedMidInfo || '-'}</div>
+  <div class="sub">ช่วงวันที่: ${date1} ถึง ${date2} &nbsp;|&nbsp; พิมพ์เมื่อ: ${printDate} &nbsp;|&nbsp; ผู้พิมพ์: ${userName}</div>
+  ${bodyHtml}
+  ${footerHtml}
+  <script>window.onload=()=>window.print();<\/script>
+  </body></html>`;
+
+  const win = window.open('', '_blank');
+  win.document.write(html);
+  win.document.close();
+}
+
 // ─── Export PDF: LV2 movements ──────────────────────────────────────────────────
 export function exportPDFLV2(lv2Rows, { selectedBranch, selectedMid, selectedMidInfo, dateRange, user, footerData }) {
   if (!selectedMid) return;

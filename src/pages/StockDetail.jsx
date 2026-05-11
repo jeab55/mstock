@@ -9,7 +9,7 @@ import TabSheet6 from '../components/mstock/TabSheet6';
 import StatusBar from '../components/mstock/StatusBar';
 import ModalFindBrand from '../components/mstock/ModalFindBrand';
 import ModalFindBranch from '../components/mstock/ModalFindBranch';
-import ModalBrandPicker from '../components/mstock/ModalBrandPicker.jsx';
+import ModalBrandPicker from '../components/mstock/ModalBrandPicker';
 import ModalMidPicker from '../components/mstock/ModalMidPicker';
 import { useAppStore } from '../store/appStore';
 import { useBranches } from '../hooks/useStockData';

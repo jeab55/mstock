@@ -15,7 +15,7 @@ export const useAppStore = create((set, get) => ({
   selectedCompany: 'MMM',
   selectedBranch: DEFAULT_BRANCH,
   dateRange: { from: DEFAULT_FROM, to: DEFAULT_TO },
-  selectedMtype: null,
+  selectedMtype: '101',
   selectedMsubtype: null,
   selectedBrand: null,
   selectedMid: null,

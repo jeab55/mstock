@@ -13,33 +13,39 @@ export function useLV1() {
   const [rows, setRows]       = useState([]);
   const [loading, setLoading] = useState(false);
 
-  const load = useCallback(async () => {
+  useEffect(() => {
+    const company   = selectedCompany;
+    const branchId  = selectedBranch.id;
+    const mtype     = selectedMtype  || undefined;
+    const brand     = selectedBrand  || undefined;
+    const from      = dateRange.from;
+    const to        = dateRange.to;
+
+    console.log('[useLV1] fetch →', { company, branchId, mtype, brand, from, to });
+
+    let cancelled = false;
     setLoading(true);
-    try {
-      const data = await api.stockcard(
-        selectedCompany,
-        selectedBranch.id,
-        selectedMtype  || undefined,
-        selectedBrand  || undefined,
-        dateRange.from,
-        dateRange.to
-      );
-      let r = data.rows || [];
-      // Filter by brand (msubtype) if set and not already filtered server-side
-      if (selectedMsubtype && selectedMsubtype !== '-SUM' && !selectedBrand) {
-        r = r.filter(row => String(row.mid).startsWith(String(selectedMsubtype).slice(0, 3)));
-      }
-      setRows(r);
-    } catch (e) {
-      toast.error('โหลด LV1 ล้มเหลว: ' + e.message);
-      setRows([]);
-    } finally {
-      setLoading(false);
-    }
+    api.stockcard(company, branchId, mtype, brand, from, to)
+      .then(data => {
+        if (cancelled) return;
+        let r = data.rows || [];
+        if (selectedMsubtype && selectedMsubtype !== '-SUM' && !brand) {
+          r = r.filter(row => String(row.mid).startsWith(String(selectedMsubtype).slice(0, 3)));
+        }
+        console.log('[useLV1] got', r.length, 'rows');
+        setRows(r);
+      })
+      .catch(e => {
+        if (cancelled) return;
+        toast.error('โหลด LV1 ล้มเหลว: ' + e.message);
+        setRows([]);
+      })
+      .finally(() => { if (!cancelled) setLoading(false); });
+
+    return () => { cancelled = true; };
   }, [selectedCompany, selectedBranch.id, dateRange.from, dateRange.to, selectedMtype, selectedBrand, selectedMsubtype]);
 
-  useEffect(() => { load(); }, [load]);
-  return { rows, loading, reload: load };
+  return { rows, loading };
 }
 
 // ─── useLV2 ──────────────────────────────────────────────────────────────────
@@ -147,10 +153,11 @@ export function useBranches() {
       const data = await api.branches(selectedCompany);
       const r = data.rows || [];
       setRows(r);
-      // Auto-set default branch name when loading or after company switch
-      if (r.length > 0 && (selectedBranch.name === 'Loading...' || selectedBranch.id === '1')) {
+      // Auto-set branch on mount or company switch (only if still on placeholder)
+      if (r.length > 0 && selectedBranch.name === 'Loading...') {
         const first = r[0];
-        setBranch({ id: String(first.id), code: String(first.id), name: first.branchname, address: first.address || '' });
+        console.log('[useBranches] auto-set branch →', first);
+        setBranch({ id: String(first.id), code: String(first.branchcode || first.id), name: first.branchname, address: first.address || '' });
       }
     } catch (e) {
       toast.error('โหลดสาขาล้มเหลว: ' + e.message);

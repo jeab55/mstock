@@ -77,23 +77,34 @@ export function useLV2() {
         if (cancelled) return;
         const moves = data.rows || [];
 
-        // Helper: calc value by doctype
+        // Helper: format time from timestamp (HH:mm)
+        const formatTime = (ts) => {
+          if (!ts) return '';
+          const str = String(ts);
+          if (str.length >= 5) {
+            const hh = str.substring(11, 13);
+            const mm = str.substring(14, 16);
+            return `${hh}:${mm}`;
+          }
+          return '';
+        };
+
+        // Helper: calc value by doctype using stockcard.cost
         const calcValue = (row) => {
           const ab = row.abill.toUpperCase();
-          const T = parseFloat(row.T) || 0;  // unit price from stockcard.T
-          const cost = parseFloat(row.cost) || 0;  // base cost from material
+          const cost = parseFloat(row.row_cost) || 0;  // stockcard.cost
           const salePrice = parseFloat(row.sale_price) || 0;
           const deb = parseFloat(row.debit) || 0;
           const cred = parseFloat(row.credit) || 0;
 
-          // For CR/AP/CT: use T (unit cost from stockcard.T)
-          if (ab === 'CR' || ab === 'AP' || ab === 'CT') return deb * T;
-          // For OS: profit = (sale_price - T) × qty (T is base cost here)
-          if (ab === 'OS') return (salePrice - T) * cred;
-          // For WS: loss = -(T × qty) 
-          if (ab === 'WS') return -(cred * T);
-          // Default: use T
-          return (deb - cred) * T;
+          // For CR/AP/CT (รับเข้า): มูลค่า = debit × cost
+          if (ab === 'CR' || ab === 'AP' || ab === 'CT') return deb * cost;
+          // For OS (ขาย): profit = (sale_price - cost) × qty
+          if (ab === 'OS') return (salePrice - cost) * cred;
+          // For WS (ลดลง): loss = -(cost × qty)
+          if (ab === 'WS') return -(cred * cost);
+          // Default: use cost
+          return (deb - cred) * cost;
         };
 
         // Group by abill
@@ -121,8 +132,7 @@ export function useLV2() {
            const timeStr  = adateStr.length > 10 ? adateStr.slice(11, 16) : '';
            const d = parseFloat(m.debit)  || 0;
            const c = parseFloat(m.credit) || 0;
-           const T = parseFloat(m.T) || 0;  // unit price from stockcard.T
-           const cost = parseFloat(m.cost) || 0;
+           const cost = parseFloat(m.row_cost) || 0;  // stockcard.cost
            const salePrice = parseFloat(m.sale_price) || 0;
 
            let value = calcValue(m);
@@ -130,15 +140,15 @@ export function useLV2() {
 
            // Track for OS special subtotal
            if (ab === 'OS') {
-             groupSaleTotal += salePrice * c;
-             groupCostTotal += T * c;  // use T not cost
-             groupProfitTotal += value;
+             groupSaleTotal += salePrice * c;  // ยอดขาย
+             groupCostTotal += cost * c;  // ต้นทุนขาย (cost of goods sold)
+             groupProfitTotal += value;  // กำไร
              totalIncome += salePrice * c;
-             totalCost += T * c;
+             totalCost += cost * c;
              totalProfit += value;
            } else {
              totalIncome += value;
-             if (ab !== 'WS') totalCost += d * T;  // use T not cost
+             if (ab !== 'WS') totalCost += d * cost;
            }
 
            groupQtyD += d;
@@ -151,7 +161,7 @@ export function useLV2() {
              adate:  dateStr + (timeStr ? ' ' + timeStr : ''),
              debit:  d > 0 ? d : '',
              credit: c > 0 ? c : '',
-             at:     T ? T.toFixed(2) : '',  // display T as unit price
+             at:     formatTime(m.T),  // display as HH:mm
              value,
              cost,
              salePrice,

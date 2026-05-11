@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 
-function getRowStyle(firstCol, isSubtotal, isGroupHeader) {
+function getRowStyle(firstCol, isSubtotal, isGroupHeader, isOSSubtotal) {
   if (isGroupHeader) return { bg: '#B1E4F5', color: '#000000', bold: false, isSection: true };
+  if (isOSSubtotal) return { bg: '#C0DCC0', color: '#000000', bold: true, isSubtotal: true };
   if (isSubtotal) return { bg: '#FFF9C4', color: '#000000', bold: true, isSubtotal: true };
   
   const val = String(firstCol || '');
@@ -85,7 +86,8 @@ export default function ListView({ columns, rows, headerRow, subHeaderRow, onRow
           const firstVal = row[columns[0]?.key];
           const isGroupHeader = row._isGroupHeader;
           const isSubtotal = row._isSubtotal;
-          const style = getRowStyle(firstVal, isSubtotal, isGroupHeader);
+          const isOSSubtotal = row._isOSSubtotal;
+          const style = getRowStyle(firstVal, isSubtotal, isGroupHeader, isOSSubtotal);
           const isSelected = selectedIndex === ri;
           const isHovered = hoveredIdx === ri && !isSelected;
 
@@ -120,9 +122,9 @@ export default function ListView({ columns, rows, headerRow, subHeaderRow, onRow
                   display = formatNum(val);
                 }
                 
-                // Color value column
+                // Color profit and value columns
                 let valueColor = undefined;
-                if (col.key === 'value' && isNumeric && !isSelected) {
+                if ((col.key === 'value' || col.key === 'profit') && isNumeric && !isSelected) {
                   if (val < 0) valueColor = '#ff0000';
                   else if (val > 0) valueColor = '#008000';
                 }
@@ -141,6 +143,7 @@ export default function ListView({ columns, rows, headerRow, subHeaderRow, onRow
                       whiteSpace: 'nowrap',
                       textOverflow: 'ellipsis',
                       fontSize: 12,
+                      fontWeight: col.key === 'value' && !isSelected ? 'bold' : undefined,
                       fontVariantNumeric: col.align === 'right' ? 'tabular-nums' : undefined,
                     }}
                     title={display}
@@ -156,8 +159,8 @@ export default function ListView({ columns, rows, headerRow, subHeaderRow, onRow
 
       {/* Footer */}
       {footerData && (
-        <div className="flex-shrink-0" style={{ background: '#f0f0f0', borderTop: '1px solid #999', padding: '4px 8px', fontSize: '12px', fontFamily: 'var(--font-tahoma)' }}>
-          รวมรับเข้า: {footerData.totalIncome.toFixed(2)} บาท | รวมขาย: {footerData.totalCost.toFixed(2)} บาท | กำไรรวม: {footerData.totalProfit.toFixed(2)} บาท (ROI: {footerData.roi.toFixed(1)}%)
+        <div className="flex-shrink-0" style={{ background: '#8EA583', color: '#ffffff', borderTop: '1px solid #666', padding: '4px 8px', fontSize: '12px', fontFamily: 'var(--font-tahoma)', fontWeight: 'bold' }}>
+          รวมรับเข้า: {footerData.receivedTotal.toFixed(2)} บาท | ยอดขายรวม: {footerData.saleRevenue.toFixed(2)} (กำไร: {footerData.profitTotal.toFixed(2)}) บาท | ROI: {footerData.roi.toFixed(1)}%
         </div>
       )}
     </div>

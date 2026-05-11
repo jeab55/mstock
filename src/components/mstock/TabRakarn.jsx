@@ -18,13 +18,15 @@ const LV1_COLS = [
 ];
 
 const LV2_COLS = [
-  { key: 'abill',  label: 'Abill',   width: 50 },
-  { key: 'billno', label: 'Billno',  width: 160 },
-  { key: 'adate',  label: 'Adate',   width: 90 },
-  { key: 'debit',  label: 'Debit+',  width: 90, align: 'right' },
-  { key: 'credit', label: 'Credit-', width: 90, align: 'right' },
-  { key: 'at',     label: '@T',      width: 160 },
-  { key: 'value',  label: 'มูลค่า (บาท)', width: 100, align: 'right' },
+  { key: 'abill',      label: 'Abill',       width: 50 },
+  { key: 'billno',     label: 'Billno',      width: 160 },
+  { key: 'adate',      label: 'Adate',       width: 80 },
+  { key: 'debit',      label: 'Debit+',      width: 80, align: 'right' },
+  { key: 'credit',     label: 'Credit-',     width: 80, align: 'right' },
+  { key: 'salePrice',  label: 'ราคาขาย/หน่วย', width: 100, align: 'right' },
+  { key: 'cost',       label: 'ราคาทุน/หน่วย', width: 100, align: 'right' },
+  { key: 'profit',     label: 'กำไร/หน่วย',   width: 100, align: 'right' },
+  { key: 'value',      label: 'มูลค่ารวม (บาท)', width: 120, align: 'right' },
 ];
 
 const LV7_COLS = [

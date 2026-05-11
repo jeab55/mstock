@@ -117,90 +117,83 @@ export function useLV2() {
         }
 
         const result = [];
-        let totalIncome = 0, totalCost = 0, totalProfit = 0;
+        let receivedTotal = 0;   // CR+AP+CT total value
+        let saleRevenue = 0;     // OS total revenue (credit × sale_price)
+        let profitTotal = 0;     // OS total profit
 
         console.log('[useLV2] processing', order.length, 'groups from', moves.length, 'movements');
         for (const ab of order) {
           const g = groups[ab];
-          result.push({ _isGroupHeader: true, abill: ':' + ab, billno: '', adate: '', debit: '', credit: '', at: '', value: '' });
+          result.push({ _isGroupHeader: true, abill: ':' + ab, billno: '', adate: '', debit: '', credit: '', salePrice: '', cost: '', profit: '', value: '' });
 
-          let groupQtyD = 0, groupQtyC = 0, groupValue = 0, groupSaleTotal = 0, groupCostTotal = 0, groupProfitTotal = 0;
+          let groupQtyD = 0, groupQtyC = 0, groupValue = 0, groupSaleTotal = 0, groupProfitTotal = 0;
 
           for (const m of g) {
-           const adateStr = String(m.stockdate || m.adate || '');
-           const dateStr  = adateStr.slice(5, 10).replace('-', '/');
-           const d = parseFloat(m.debit)  || 0;
-           const c = parseFloat(m.credit) || 0;
-           const cost = parseFloat(m.cost) || 0;
-           const salePrice = parseFloat(m.sale_price) || 0;
+            const adateStr = String(m.stockdate || m.adate || '');
+            const dateStr  = adateStr.slice(5, 10).replace('-', '/');
+            const d = parseFloat(m.debit)  || 0;
+            const c = parseFloat(m.credit) || 0;
+            const cost = parseFloat(m.cost) || 0;
+            const salePrice = parseFloat(m.sale_price) || 0;
+            const profitPerUnit = salePrice - cost;
 
-           const unitValue = calcUnitValue(m);  // @T
-           const value = calcValue(m, unitValue);  // มูลค่า
-           groupValue += value;
+            let value = 0;
+            // Calculate mูลค่ารวม based on doctype
+            if (ab === 'CR' || ab === 'AP' || ab === 'CT') {
+              value = d * cost;  // debit × cost
+              receivedTotal += value;
+            } else if (ab === 'OS') {
+              value = c * salePrice;  // credit × sale_price
+              groupSaleTotal += value;
+              groupProfitTotal += c * profitPerUnit;
+              saleRevenue += value;
+              profitTotal += c * profitPerUnit;
+            } else if (ab === 'WS' || ab === 'CA') {
+              value = c * cost;  // credit × cost
+            } else {
+              value = (d - c) * cost;
+            }
+            groupValue += value;
+            groupQtyD += d;
+            groupQtyC += c;
 
-           // Track for OS special subtotal
-           if (ab === 'OS') {
-             groupSaleTotal += salePrice * c;  // ยอดขาย
-             groupCostTotal += cost * c;  // ต้นทุนขาย
-             groupProfitTotal += value;  // กำไร
-             totalIncome += salePrice * c;
-             totalCost += cost * c;
-             totalProfit += value;
-           } else {
-             totalIncome += value;
-             if (ab !== 'WS') totalCost += d * cost;
-           }
-
-           groupQtyD += d;
-           groupQtyC += c;
-
-           result.push({
-             _isRow: true,
-             abill:  ab,
-             billno: m.billno,
-             adate:  dateStr,
-             debit:  d > 0 ? d : '',
-             credit: c > 0 ? c : '',
-             at:     unitValue,  // @T = value per unit
-             value,
-             cost,
-             salePrice,
-           });
+            result.push({
+              _isRow: true,
+              abill:     ab,
+              billno:    m.billno,
+              adate:     dateStr,
+              debit:     d > 0 ? d : '',
+              credit:    c > 0 ? c : '',
+              salePrice: ab === 'OS' ? salePrice : '',
+              cost:      cost,
+              profit:    ab === 'OS' ? profitPerUnit : '',
+              value:     value,
+            });
           }
 
           // Subtotal row
-          if (ab === 'OS') {
-            result.push({
-              _isSubtotal: true,
-              abill: '-',
-              billno: `ขาย=${groupSaleTotal.toFixed(2)} บาท | ต้นทุน=${groupCostTotal.toFixed(2)} บาท | กำไร=${groupProfitTotal.toFixed(2)} บาท`,
-              adate: '',
-              debit: groupQtyC,
-              credit: '',
-              at: '',
-              value: groupProfitTotal,
-            });
-          } else {
-            result.push({
-              _isSubtotal: true,
-              abill: '-',
-              billno: '',
-              adate: '',
-              debit: groupQtyD > 0 ? groupQtyD : (groupQtyC > 0 ? groupQtyC : ''),
-              credit: '',
-              at: '',
-              value: groupValue,
-            });
-          }
+          result.push({
+            _isSubtotal: true,
+            abill: '-',
+            billno: ab === 'OS' ? `ยอดขาย: ${groupSaleTotal.toFixed(2)} (กำไร: ${groupProfitTotal.toFixed(2)})` : '',
+            adate: '',
+            debit: groupQtyD > 0 ? groupQtyD : (groupQtyC > 0 ? groupQtyC : ''),
+            credit: '',
+            salePrice: '',
+            cost: '',
+            profit: '',
+            value: ab === 'OS' ? groupSaleTotal : groupValue,
+            _isOSSubtotal: ab === 'OS',
+          });
         }
 
-        console.log('[useLV2] result', result.length, 'rows, footerData:', { totalIncome, totalCost, totalProfit });
+        console.log('[useLV2] result', result.length, 'rows, footerData:', { receivedTotal, saleRevenue, profitTotal });
         setRows(result);
         setFooterData({
-          totalIncome,
-          totalCost,
-          totalProfit,
-          roi: totalCost > 0 ? (totalProfit / totalCost * 100) : 0,
+          receivedTotal,
+          saleRevenue,
+          profitTotal,
+          roi: saleRevenue > 0 ? (profitTotal / saleRevenue * 100) : 0,
         });
       })
       .catch(e => {

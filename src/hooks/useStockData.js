@@ -223,15 +223,15 @@ export function useLV3() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!selectedBranch.id) return;
+    if (!selectedBranch.id || !selectedBranch.code) return;
     let cancelled = false;
     setLoading(true);
-    api.stockcardByType(selectedCompany, selectedBranch.id, dateRange.from, dateRange.to)
+    api.stockcardByType(selectedCompany, selectedBranch.id, selectedBranch.code, dateRange.from, dateRange.to)
       .then(data => { if (!cancelled) setRows(data.rows || []); })
       .catch(e => { if (!cancelled) toast.error('โหลด LV3 ล้มเหลว: ' + e.message); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [selectedCompany, selectedBranch.id, dateRange.from, dateRange.to]);
+  }, [selectedCompany, selectedBranch.id, selectedBranch.code, dateRange.from, dateRange.to]);
 
   return { rows, loading };
 }
@@ -243,15 +243,15 @@ export function useLV4(typeid) {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!typeid || !selectedBranch.id) { setRows([]); return; }
+    if (!typeid || !selectedBranch.id || !selectedBranch.code) { setRows([]); return; }
     let cancelled = false;
     setLoading(true);
-    api.stockcardByMidType(selectedCompany, selectedBranch.id, typeid, dateRange.from, dateRange.to)
+    api.stockcardByMidType(selectedCompany, selectedBranch.id, selectedBranch.code, typeid, dateRange.from, dateRange.to)
       .then(data => { if (!cancelled) setRows(data.rows || []); })
       .catch(e => { if (!cancelled) toast.error('โหลด LV4 ล้มเหลว: ' + e.message); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [selectedCompany, selectedBranch.id, typeid, dateRange.from, dateRange.to]);
+  }, [selectedCompany, selectedBranch.id, selectedBranch.code, typeid, dateRange.from, dateRange.to]);
 
   return { rows, loading };
 }

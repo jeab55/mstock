@@ -22,8 +22,8 @@ export const api = {
   // LV7: FIFO lot grid — pass branchcode for POS.material_{branchcode}
   lots:                (company, branch, mid, branchcode)             => call('lots',                  { company, branch, mid, branchcode }),
   // TabChanid summary views
-  stockcardByType:     (company, branch, from, to)                    => call('stockcard_bytype',      { company, branch, from, to }),
+  stockcardByType:     (company, branch, branchcode, from, to)        => call('stockcard_bytype',      { company, branch, branchcode, from, to }),
   stockcardByBrand:    (company, branch, from, to)                    => call('stockcard_bybrand',     { company, branch, from, to }),
-  stockcardByMidType:  (company, branch, mtype, from, to)             => call('stockcard_bymid_type',  { company, branch, mtype, from, to }),
+  stockcardByMidType:  (company, branch, branchcode, mtype, from, to) => call('stockcard_bymid_type',  { company, branch, branchcode, mtype, from, to }),
   stockcardByMidBrand: (company, branch, brand, from, to)             => call('stockcard_bymid_brand', { company, branch, brand, from, to }),
 };

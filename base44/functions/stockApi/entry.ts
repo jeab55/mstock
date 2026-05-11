@@ -282,68 +282,63 @@ Deno.serve(async (req) => {
       return Response.json({ lots, salePrice: posPrice });
     }
 
-    // ── stockcard_bytype (LV3: sum per mtype) — unchanged ────────────────────
+    // ── stockcard_bytype (LV3: sum per mtype) — Delphi BitBtn2Click line 676-695
+    // Uses POS.material_{branchcode}.cost for price/totalvalue
     if (action === 'stockcard_bytype') {
-      const { branch, from: date1, to: date2 } = params;
-      if (!branch || !date1 || !date2) return Response.json({ error: 'branch, from, to required' }, { status: 400 });
+      const { branch, branchcode, from: date1, to: date2 } = params;
+      if (!branch || !branchcode || !date1 || !date2) return Response.json({ error: 'branch, branchcode, from, to required' }, { status: 400 });
       const branchId = Number(branch);
       const d1time = `${date1} 00:00:00`;
       const d2time = `${date2} 23:59:59`;
+      const posTable = `POS.material_${branchcode}`;
 
-      const mtypes = await query(company, `SELECT id, typename AS name FROM mtype ORDER BY orderid, id`);
-
+      // Delphi SQL (finddetailstock.pas BitBtn2Click lines 676-695)
+      // GROUP BY t.id, t.typename — aggregate per mtype using POS cost
       const rows = await query(company, `
-        SELECT m.typeid,
-          SUM(IF(a.stockdate < ?, a.debit,  0)) - SUM(IF(a.stockdate < ?, a.credit, 0)) AS carry,
-          SUM(IF(a.stockdate BETWEEN ? AND ?, a.debit,  0)) AS debit,
-          SUM(IF(a.stockdate BETWEEN ? AND ?, a.credit, 0)) AS credit,
-          SUM(m.cost * (
-            SUM(IF(a.stockdate < ?, a.debit,0)) - SUM(IF(a.stockdate < ?, a.credit,0))
-            + SUM(IF(a.stockdate BETWEEN ? AND ?, a.debit,0))
-            - SUM(IF(a.stockdate BETWEEN ? AND ?, a.credit,0))
-          )) AS value_num
+        SELECT
+          t.id,
+          t.typename,
+          SUM(IF(a.stockdate < ?, a.debit,  0)) AS carryd,
+          SUM(IF(a.stockdate < ?, a.credit, 0)) AS carryc,
+          SUM(IF(a.stockdate BETWEEN ? AND ?, a.debit,  0)) AS debit_,
+          SUM(IF(a.stockdate BETWEEN ? AND ?, a.credit, 0)) AS credit_,
+          SUM(
+            (IF(a.stockdate < ?, a.debit, 0) - IF(a.stockdate < ?, a.credit, 0)
+             + IF(a.stockdate BETWEEN ? AND ?, a.debit, 0) - IF(a.stockdate BETWEEN ? AND ?, a.credit, 0))
+            * m.cost
+          ) AS totalvalue,
+          AVG(m.cost) AS lcost
         FROM stockcard a
-        INNER JOIN material m ON a.mid = m.mid
+        INNER JOIN ${posTable} m ON a.mid = m.mid
+        INNER JOIN mtype t ON t.id = m.typeid
         WHERE a.branchid = ?
-        GROUP BY m.typeid
-      `, [d1time, d1time, d1time, d2time, d1time, d2time,
-          d1time, d1time, d1time, d2time, d1time, d2time,
-          branchId]).catch(async () => {
-        // Simpler fallback
-        return query(company, `
-          SELECT m.typeid,
-            SUM(CASE WHEN DATE(a.stockdate) < ? THEN a.debit - a.credit ELSE 0 END) AS carry,
-            SUM(CASE WHEN DATE(a.stockdate) >= ? AND DATE(a.stockdate) <= ? THEN a.debit ELSE 0 END) AS debit,
-            SUM(CASE WHEN DATE(a.stockdate) >= ? AND DATE(a.stockdate) <= ? THEN a.credit ELSE 0 END) AS credit
-          FROM stockcard a INNER JOIN material m ON a.mid = m.mid
-          WHERE a.branchid = ? GROUP BY m.typeid
-        `, [date1, date1, date2, date1, date2, branchId]);
-      });
+        GROUP BY t.id, t.typename
+        ORDER BY t.id
+      `, [
+        d1time,                                 // carryd IF
+        d1time,                                 // carryc IF
+        d1time, d2time,                         // debit_ BETWEEN
+        d1time, d2time,                         // credit_ BETWEEN
+        d1time, d1time,                         // totalvalue carry part
+        d1time, d2time, d1time, d2time,         // totalvalue period part
+        branchId
+      ]);
 
-      // Build per-mtype map
-      const typeMap = {};
-      for (const r of rows) {
-        const carry  = parseFloat(r.carry)  || 0;
-        const debit  = parseFloat(r.debit)  || 0;
-        const credit = parseFloat(r.credit) || 0;
-        typeMap[r.typeid] = { total: carry + debit - credit };
-      }
-
-      // Get avg cost per type from material
-      const matCosts = await query(company, `SELECT typeid, AVG(cost) AS avgcost FROM material WHERE cancelstatus=0 GROUP BY typeid`);
-      const costMap = {};
-      for (const r of matCosts) costMap[r.typeid] = parseFloat(r.avgcost) || 0;
-
-      let grandTotal = 0, grandValue = 0;
-      const result = mtypes.map(mt => {
-        const agg = typeMap[mt.id] || { total: 0 };
-        const price = costMap[mt.id] || 0;
-        const value = agg.total * price;
-        grandTotal += agg.total;
+      let grandQty = 0, grandValue = 0;
+      const result = rows.map(r => {
+        const carryd = parseFloat(r.carryd)     || 0;
+        const carryc = parseFloat(r.carryc)     || 0;
+        const debit  = parseFloat(r.debit_)     || 0;
+        const credit = parseFloat(r.credit_)    || 0;
+        const qty    = carryd - carryc + debit - credit;
+        const price  = parseFloat(r.lcost)      || 0;
+        const value  = parseFloat(r.totalvalue) || 0;
+        grandQty   += qty;
         grandValue += value;
-        return { id: String(mt.id), name: mt.name, total: agg.total, price, value };
+        return { id: String(r.id), name: r.typename, total: qty, price, value };
       });
-      result.push({ id: '-SUM', name: '', total: grandTotal, price: grandTotal > 0 ? grandValue / grandTotal : 0, value: grandValue });
+      // -SUM row: qty total, price blank (null → formatNum shows ''), value total
+      result.push({ id: '-SUM', name: '', total: grandQty, price: null, value: grandValue });
       return Response.json({ rows: result });
     }
 
@@ -393,33 +388,48 @@ Deno.serve(async (req) => {
       return Response.json({ rows: result });
     }
 
-    // ── stockcard_bymid_type (LV4) ────────────────────────────────────────────
+    // ── stockcard_bymid_type (LV4) — uses POS.material_{branchcode} ──────────
     if (action === 'stockcard_bymid_type') {
-      const { branch, mtype, from: date1, to: date2 } = params;
-      if (!branch || !mtype || !date1 || !date2) return Response.json({ error: 'branch, mtype, from, to required' }, { status: 400 });
+      const { branch, branchcode, mtype, from: date1, to: date2 } = params;
+      if (!branch || !branchcode || !mtype || !date1 || !date2) return Response.json({ error: 'branch, branchcode, mtype, from, to required' }, { status: 400 });
       const branchId = Number(branch);
       const d1time = `${date1} 00:00:00`;
       const d2time = `${date2} 23:59:59`;
+      const posTable = `POS.material_${branchcode}`;
 
       const rows = await query(company, `
         SELECT a.mid, m.info, m.cost,
-          SUM(CASE WHEN a.stockdate < ? THEN a.debit - a.credit ELSE 0 END) AS carry,
-          SUM(CASE WHEN a.stockdate BETWEEN ? AND ? THEN a.debit  ELSE 0 END) AS debit,
-          SUM(CASE WHEN a.stockdate BETWEEN ? AND ? THEN a.credit ELSE 0 END) AS credit
+          SUM(IF(a.stockdate < ?, a.debit,  0)) AS carryd,
+          SUM(IF(a.stockdate < ?, a.credit, 0)) AS carryc,
+          SUM(IF(a.stockdate BETWEEN ? AND ?, a.debit,  0)) AS debit_,
+          SUM(IF(a.stockdate BETWEEN ? AND ?, a.credit, 0)) AS credit_,
+          SUM(
+            (IF(a.stockdate < ?, a.debit, 0) - IF(a.stockdate < ?, a.credit, 0)
+             + IF(a.stockdate BETWEEN ? AND ?, a.debit, 0) - IF(a.stockdate BETWEEN ? AND ?, a.credit, 0))
+            * m.cost
+          ) AS totalvalue
         FROM stockcard a
-        INNER JOIN material m ON a.mid = m.mid
-        WHERE a.branchid = ? AND m.typeid = ? AND m.cancelstatus = 0
+        INNER JOIN ${posTable} m ON a.mid = m.mid
+        WHERE a.branchid = ? AND m.typeid = ?
         GROUP BY a.mid, m.info, m.cost
         ORDER BY a.mid
-      `, [d1time, d1time, d2time, d1time, d2time, branchId, Number(mtype)]);
+      `, [
+        d1time, d1time,
+        d1time, d2time,
+        d1time, d2time,
+        d1time, d1time, d1time, d2time, d1time, d2time,
+        branchId, Number(mtype)
+      ]);
 
       const result = rows.map(r => {
-        const carry  = parseFloat(r.carry)  || 0;
-        const debit  = parseFloat(r.debit)  || 0;
-        const credit = parseFloat(r.credit) || 0;
-        const total  = carry + debit - credit;
-        const cost   = parseFloat(r.cost)   || 0;
-        return { mid: r.mid, info: r.info, total, price: cost, value: total * cost };
+        const carryd = parseFloat(r.carryd)     || 0;
+        const carryc = parseFloat(r.carryc)     || 0;
+        const debit  = parseFloat(r.debit_)     || 0;
+        const credit = parseFloat(r.credit_)    || 0;
+        const total  = carryd - carryc + debit - credit;
+        const price  = parseFloat(r.cost)       || 0;
+        const value  = parseFloat(r.totalvalue) || 0;
+        return { mid: r.mid, info: r.info, total, price, value };
       });
       return Response.json({ rows: result });
     }

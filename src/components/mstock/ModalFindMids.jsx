@@ -84,7 +84,7 @@ export default function ModalFindMids({ onClose }) {
       <div className="bg-[#d4d0c8] border-2 shadow-lg flex flex-col" style={{ width: 480, borderColor: '#808080' }}>
         {/* Title */}
         <div className="h-7 flex items-center justify-between px-2 text-white text-xs flex-shrink-0" style={{ background: '#7c8db0' }}>
-          <span>ค้นราคา — ใส่รหัสสินค้าหลายตัว</span>
+          <span>ค้นสินค้า — ใส่รหัสสินค้าหลายตัว</span>
           <button onClick={onClose} className="hover:bg-red-600 px-1"><X className="w-3 h-3" /></button>
         </div>
 

@@ -157,7 +157,7 @@ export default function TabRakarn({ onOpenBrand, onOpenMid, onOpenMsubtype, onOp
     { icon: '📤', iconKey: '📤', label: 'Excel', onClick: handleExcel,   disabled: !hasData || !!busy, loading: busy === 'e1', title: noDataTip || 'ส่งออก LV1 เป็นไฟล์ Excel', group: 2 },
     { icon: '📄', iconKey: '📄', label: 'PDF', onClick: handlePDF,     disabled: !selectedMid || !!busy, loading: busy === 'e2', title: noDataTip2 || 'ส่งออก LV2 เป็นไฟล์ PDF', group: 2 },
     { icon: '❓', iconKey: '❓', label: 'ค้นรหัส',     onClick: onOpenMid, title: 'ค้นหารหัสสินค้า', group: 3 },
-    { icon: '💲', iconKey: '💲', label: 'ค้นราคา',  onClick: onOpenFindMids, title: 'ค้นหารหัสสินค้าหลายตัวพร้อมกัน (F7)', group: 3 },
+    { icon: '💲', iconKey: '💲', label: 'ค้นสินค้า',  onClick: onOpenFindMids, title: 'ค้นหารหัสสินค้าหลายตัวพร้อมกัน (F7)', group: 3 },
   ];
 
   return (

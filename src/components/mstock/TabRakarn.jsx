@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import Toolbar from './Toolbar';
 import ListView from './ListView';
 import { useAppStore } from '../../store/appStore';
@@ -32,16 +32,26 @@ const LV7_COLS = [
   { key: 'cost',   label: 'Cost',  width: 70, align: 'right' },
 ];
 
-export default function TabRakarn({ onOpenType, onOpenBrand, onOpenMid }) {
-  const { selectedBranch, dateRange, selectedMid, selectedMtype, selectedBrand, setSelectedMid, setStatusSecond } = useAppStore();
+export default function TabRakarn({ onOpenType, onOpenBrand, onOpenMid, onOpenSubtype }) {
+  const { selectedBranch, dateRange, selectedMid, selectedMtype, selectedMsubtype, selectedBrand, setSelectedMid, setStatusSecond } = useAppStore();
+
+  // F3 shortcut
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'F3') { e.preventDefault(); onOpenSubtype?.(); } };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onOpenSubtype]);
   const branchid = selectedBranch.id;
   const { from: date1, to: date2 } = dateRange;
 
-  // LV1 rows
-  const lv1Rows = useMemo(() =>
-    buildLV1Rows(branchid, date1, date2, selectedMtype || null, selectedBrand || null),
-    [branchid, date1, date2, selectedMtype, selectedBrand]
-  );
+  // LV1 rows — filter by msubtype (brand prefix match) if set
+  const lv1Rows = useMemo(() => {
+    let rows = buildLV1Rows(branchid, date1, date2, selectedMtype || null, selectedBrand || null);
+    if (selectedMsubtype && selectedMsubtype !== '-SUM') {
+      rows = rows.filter(r => String(r.mid).startsWith(selectedMsubtype));
+    }
+    return rows;
+  }, [branchid, date1, date2, selectedMtype, selectedBrand, selectedMsubtype]);
 
   const selectedLv1Index = useMemo(() =>
     lv1Rows.findIndex(r => r.mid === selectedMid),
@@ -99,7 +109,7 @@ export default function TabRakarn({ onOpenType, onOpenBrand, onOpenMid }) {
 
   const toolbarButtons = [
     { icon: '📑', iconKey: '📑', label: 'ชนิด',   onClick: onOpenType },
-    { icon: '🏷', iconKey: '📑', label: 'ประเภท', onClick: onOpenBrand },
+    { icon: '🏷', iconKey: '📑', label: 'ประเภท', onClick: onOpenSubtype },
     { icon: '🖨', iconKey: '🖨', label: 'พิมพ์ 1', onClick: () => console.log('TODO: พิมพ์ 1') },
     { icon: '🖨', iconKey: '🖨', label: 'พิมพ์ 2', onClick: () => console.log('TODO: พิมพ์ 2') },
     { icon: '❓', iconKey: '❓', label: 'รหัส',    onClick: onOpenMid },

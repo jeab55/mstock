@@ -9,6 +9,7 @@ import TabSheet6 from '../components/mstock/TabSheet6';
 import StatusBar from '../components/mstock/StatusBar';
 import ModalPicker from '../components/mstock/ModalPicker';
 import ModalFindType from '../components/mstock/ModalFindType';
+import ModalFindSubtype from '../components/mstock/ModalFindSubtype';
 import { useAppStore } from '../store/appStore';
 import { BRANCHES, MTYPES, BRANDS, MATERIALS } from '../data/mockData';
 
@@ -53,7 +54,7 @@ export default function StockDetail() {
       <TabBar activeTab={activeTab} onTabChange={setActiveTab} />
 
       <div className="flex-1 flex flex-col overflow-hidden bg-white border border-gray-400 border-t-0">
-        {activeTab === 'rakarn'    && <TabRakarn    onOpenType={() => setModalOpen('type')} onOpenBrand={() => setModalOpen('brand')} onOpenMid={() => setModalOpen('mid')} />}
+        {activeTab === 'rakarn'    && <TabRakarn    onOpenType={() => setModalOpen('type')} onOpenBrand={() => setModalOpen('brand')} onOpenMid={() => setModalOpen('mid')} onOpenSubtype={() => setModalOpen('subtype')} />}
         {activeTab === 'chanid'    && <TabChanid />}
         {activeTab === 'chanidyoi' && <TabChanidYoi />}
         {activeTab === 'tabsheet6' && <TabSheet6 />}
@@ -74,6 +75,9 @@ export default function StockDetail() {
       )}
       {modalOpen === 'type' && (
         <ModalFindType onClose={() => setModalOpen(null)} />
+      )}
+      {modalOpen === 'subtype' && (
+        <ModalFindSubtype onClose={() => setModalOpen(null)} />
       )}
       {modalOpen === 'brand' && (
         <ModalPicker

@@ -8,6 +8,7 @@ import TabChanidYoi from '../components/mstock/TabChanidYoi';
 import TabSheet6 from '../components/mstock/TabSheet6';
 import StatusBar from '../components/mstock/StatusBar';
 import ModalPicker from '../components/mstock/ModalPicker';
+import ModalFindType from '../components/mstock/ModalFindType';
 import { useAppStore } from '../store/appStore';
 import { BRANCHES, MTYPES, BRANDS, MATERIALS } from '../data/mockData';
 
@@ -72,15 +73,7 @@ export default function StockDetail() {
         />
       )}
       {modalOpen === 'type' && (
-        <ModalPicker
-          title="Fsearch — ชนิด"
-          columns={TYPE_COLS}
-          rows={MTYPES}
-          searchKey="name"
-          onSelect={(row) => { setSelectedMtype(row.id); setModalOpen(null); }}
-          onClose={() => setModalOpen(null)}
-          sqlHint="select id ,typename from mtype where typename like '%%'"
-        />
+        <ModalFindType onClose={() => setModalOpen(null)} />
       )}
       {modalOpen === 'brand' && (
         <ModalPicker

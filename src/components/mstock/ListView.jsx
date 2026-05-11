@@ -28,12 +28,13 @@ export default function ListView({ columns, rows, headerRow, subHeaderRow, onRow
         {columns.map((col, ci) => (
           <div
             key={ci}
-            className="text-xs px-1.5 py-0.5 border-r border-b border-gray-400 truncate flex-shrink-0"
+            className="px-1.5 py-0.5 border-r border-b border-gray-400 truncate flex-shrink-0"
             style={{
               width: col.width,
               minWidth: col.width,
               textAlign: col.align || 'left',
               fontWeight: 400,
+              fontSize: '12px',
             }}
           >
             {col.label}
@@ -47,12 +48,13 @@ export default function ListView({ columns, rows, headerRow, subHeaderRow, onRow
           {columns.map((col, ci) => (
             <div
               key={ci}
-              className="text-xs px-1.5 py-px border-b truncate flex-shrink-0"
+              className="px-1.5 py-px border-b truncate flex-shrink-0"
               style={{
                 width: col.width,
                 minWidth: col.width,
                 textAlign: col.align || 'left',
                 borderColor: '#f0f0f0',
+                fontSize: '12px',
               }}
             >
               {headerRow[col.key] !== undefined ? (typeof headerRow[col.key] === 'number' ? formatNum(headerRow[col.key]) : headerRow[col.key]) : ''}
@@ -67,12 +69,13 @@ export default function ListView({ columns, rows, headerRow, subHeaderRow, onRow
           {columns.map((col, ci) => (
             <div
               key={ci}
-              className="text-xs px-1.5 py-px border-b truncate flex-shrink-0"
+              className="px-1.5 py-px border-b truncate flex-shrink-0"
               style={{
                 width: col.width,
                 minWidth: col.width,
                 textAlign: col.align || 'left',
                 borderColor: '#f0f0f0',
+                fontSize: '12px',
               }}
             >
               {subHeaderRow[col.key] !== undefined ? (typeof subHeaderRow[col.key] === 'number' ? formatNum(subHeaderRow[col.key]) : subHeaderRow[col.key]) : ''}
@@ -123,7 +126,7 @@ export default function ListView({ columns, rows, headerRow, subHeaderRow, onRow
                 return (
                   <div
                     key={ci}
-                    className="text-xs px-1.5 py-px flex-shrink-0"
+                    className="px-1.5 py-px flex-shrink-0"
                     style={{
                       width: col.width,
                       minWidth: col.width,
@@ -132,6 +135,7 @@ export default function ListView({ columns, rows, headerRow, subHeaderRow, onRow
                       color: isRed ? '#ff0000' : undefined,
                       overflow: ci === columns.length - 1 ? 'visible' : 'hidden',
                       whiteSpace: 'nowrap',
+                      fontSize: '12px',
                     }}
                   >
                     {display}

@@ -7,30 +7,30 @@ import { printLV1, printLV1LV2, exportExcel, exportPDF } from '../../lib/reportE
 import { base44 } from '@/api/base44Client';
 
 const LV1_COLS = [
-  { key: 'mid',    label: 'mid',     width: 70 },
-  { key: 'info',   label: 'Info',    width: 200 },
-  { key: 'carry',  label: 'Carry',   width: 70, align: 'right' },
-  { key: 'debit',  label: 'Debit+',  width: 70, align: 'right' },
-  { key: 'credit', label: 'Credit-', width: 70, align: 'right' },
-  { key: 'total',  label: 'Total',   width: 70, align: 'right' },
+  { key: 'mid',    label: 'mid',     width: 80 },
+  { key: 'info',   label: 'Info',    width: 280 },
+  { key: 'carry',  label: 'Carry',   width: 80, align: 'right' },
+  { key: 'debit',  label: 'Debit+',  width: 80, align: 'right' },
+  { key: 'credit', label: 'Credit-', width: 80, align: 'right' },
+  { key: 'total',  label: 'Total',   width: 80, align: 'right' },
 ];
 
 const LV2_COLS = [
-  { key: 'abill',  label: 'Abill',   width: 55 },
-  { key: 'billno', label: 'Billno',  width: 155 },
-  { key: 'adate',  label: 'Adate',   width: 75 },
-  { key: 'debit',  label: 'Debit+',  width: 70, align: 'right' },
-  { key: 'credit', label: 'Credit-', width: 70, align: 'right' },
-  { key: 'at',     label: '@T',      width: 180 },
+  { key: 'abill',  label: 'Abill',   width: 60 },
+  { key: 'billno', label: 'Billno',  width: 190 },
+  { key: 'adate',  label: 'Adate',   width: 85 },
+  { key: 'debit',  label: 'Debit+',  width: 80, align: 'right' },
+  { key: 'credit', label: 'Credit-', width: 80, align: 'right' },
+  { key: 'at',     label: '@T',      width: 220 },
 ];
 
 const LV7_COLS = [
-  { key: 'lot',    label: 'lot',   width: 40 },
-  { key: 'billno', label: 'Billno', width: 160 },
-  { key: 'adate',  label: 'Adate', width: 80 },
-  { key: 'debit',  label: 'Debit', width: 70, align: 'right' },
-  { key: 'calc',   label: 'Calc',  width: 70, align: 'right' },
-  { key: 'cost',   label: 'Cost',  width: 70, align: 'right' },
+  { key: 'lot',    label: 'lot',    width: 40 },
+  { key: 'billno', label: 'Billno', width: 190 },
+  { key: 'adate',  label: 'Adate',  width: 85 },
+  { key: 'debit',  label: 'Debit',  width: 80, align: 'right' },
+  { key: 'calc',   label: 'Calc',   width: 80, align: 'right' },
+  { key: 'cost',   label: 'Cost',   width: 80, align: 'right' },
 ];
 
 export default function TabRakarn({ onOpenType, onOpenBrand, onOpenMid, onOpenSubtype }) {

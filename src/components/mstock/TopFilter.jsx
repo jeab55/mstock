@@ -63,7 +63,7 @@ export default function TopFilter({ onOpenBranch }) {
   const handleTo   = (e) => setDateRange({ ...dateRange, to: e.target.value });
 
   return (
-    <div className="h-11 flex items-center gap-1 px-2 flex-shrink-0" style={{ background: '#F9CBAC', fontSize: '11px' }}>
+    <div className="h-11 flex items-center gap-1 px-2 flex-shrink-0" style={{ background: '#F9CBAC', fontSize: '12px' }}>
       {/* Branch label */}
       <div className="px-1.5 py-0.5 border border-gray-400 truncate" style={{ background: '#FFFFE1', maxWidth: '160px', minWidth: '100px' }}>
         {selectedBranch.name}
@@ -80,7 +80,7 @@ export default function TopFilter({ onOpenBranch }) {
       <input
         type="number"
         className="w-8 text-center border border-gray-400 bg-white px-0.5 flex-shrink-0"
-        style={{ fontSize: '11px' }}
+        style={{ fontSize: '12px' }}
         value={curWeek}
         onChange={e => setWeek(Number(e.target.value))}
       />
@@ -90,7 +90,7 @@ export default function TopFilter({ onOpenBranch }) {
       <span className="ml-1 whitespace-nowrap flex-shrink-0">เดือน</span>
       <select
         className="border border-gray-400 bg-white px-1 py-0.5 flex-shrink-0"
-        style={{ fontSize: '11px' }}
+        style={{ fontSize: '12px' }}
         value={curMonth}
         onChange={e => setMonth(Number(e.target.value), curYear)}
       >
@@ -101,7 +101,7 @@ export default function TopFilter({ onOpenBranch }) {
       <span className="ml-1 whitespace-nowrap flex-shrink-0">ปี</span>
       <select
         className="border border-gray-400 bg-white px-1 py-0.5 flex-shrink-0"
-        style={{ fontSize: '11px' }}
+        style={{ fontSize: '12px' }}
         value={curYear}
         onChange={e => setYear(Number(e.target.value))}
       >
@@ -112,9 +112,9 @@ export default function TopFilter({ onOpenBranch }) {
 
       {/* วันที่ */}
       <span className="whitespace-nowrap flex-shrink-0">วันที่</span>
-      <input type="date" value={dateRange.from} onChange={handleFrom} className="w-[100px] border border-gray-400 bg-white px-1 text-center flex-shrink-0" style={{ fontSize: '11px' }} />
+      <input type="date" value={dateRange.from} onChange={handleFrom} className="w-[110px] border border-gray-400 bg-white px-1 text-center flex-shrink-0" style={{ fontSize: '12px' }} />
       <span className="whitespace-nowrap flex-shrink-0">ถึง</span>
-      <input type="date" value={dateRange.to} onChange={handleTo} className="w-[100px] border border-gray-400 bg-white px-1 text-center flex-shrink-0" style={{ fontSize: '11px' }} />
+      <input type="date" value={dateRange.to} onChange={handleTo} className="w-[110px] border border-gray-400 bg-white px-1 text-center flex-shrink-0" style={{ fontSize: '12px' }} />
 
       <button className="delphi-btn px-1 flex-shrink-0" onClick={() => shiftDate1(-1)}><ChevronLeft className="w-3 h-3" /></button>
       <button className="delphi-btn px-1 flex-shrink-0" onClick={() => shiftDate1(1)}><ChevronRight className="w-3 h-3" /></button>

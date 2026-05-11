@@ -9,8 +9,9 @@ import { toast } from 'sonner';
 
 // ─── useLV1 ──────────────────────────────────────────────────────────────────
 // Delphi LV1: stockcard grouped by mid for a mtype+brand(optional)+branch+daterange
+// OR custom mid list if customMidList is set
 export function useLV1() {
-  const { selectedCompany, selectedBranch, dateRange, selectedMtype, selectedBrand } = useAppStore();
+  const { selectedCompany, selectedBranch, dateRange, selectedMtype, selectedBrand, customMidList } = useAppStore();
   const [rows, setRows]       = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -22,16 +23,23 @@ export function useLV1() {
     const from     = dateRange.from;
     const to       = dateRange.to;
 
-    if (!branchId || !mtype) {
-      console.log('[useLV1] skip — no branchId or mtype', { branchId, mtype });
+    if (!branchId) {
+      console.log('[useLV1] skip — no branchId');
       return;
     }
 
-    console.log('[useLV1] fetch →', { company, branchId, mtype, brand, from, to });
+    // If customMidList is set, use it; otherwise use mtype filter
+    if (!customMidList && !mtype) {
+      console.log('[useLV1] skip — no mtype or customMidList');
+      return;
+    }
+
+    const isCustom = !!customMidList;
+    console.log('[useLV1] fetch →', { company, branchId, mtype, brand, from, to, customMidList, isCustom });
     let cancelled = false;
     setLoading(true);
 
-    api.stockcard(company, branchId, mtype, brand, from, to)
+    api.stockcard(company, branchId, mtype, brand, from, to, isCustom ? customMidList : null)
       .then(data => {
         if (cancelled) return;
         console.log('[useLV1] got', (data.rows || []).length, 'rows');
@@ -45,7 +53,7 @@ export function useLV1() {
       .finally(() => { if (!cancelled) setLoading(false); });
 
     return () => { cancelled = true; };
-  }, [selectedCompany, selectedBranch.id, dateRange.from, dateRange.to, selectedMtype, selectedBrand]);
+  }, [selectedCompany, selectedBranch.id, dateRange.from, dateRange.to, selectedMtype, selectedBrand, customMidList]);
 
   return { rows, loading };
 }

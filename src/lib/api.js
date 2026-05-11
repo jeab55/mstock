@@ -17,8 +17,8 @@ export const api = {
   // brands = "ประเภท" picker — filtered by typeid if provided
   brands:              (company, typeid, q = '')                      => call('brands',                { company, typeid, q }),
   materials:           (company, mtype)                               => call('materials',             { company, mtype }),
-  // LV1: Delphi stockcard query — filter by mtype.typeid and optional brand.id
-  stockcard:           (company, branch, mtype, brand, from, to)      => call('stockcard',             { company, branch, mtype, brand, from, to }),
+  // LV1: Delphi stockcard query — filter by mtype.typeid and optional brand.id, or by custom mids list
+  stockcard:           (company, branch, mtype, brand, from, to, mids)      => call('stockcard',             { company, branch, mtype, brand, from, to, mids }),
   // LV2: movements grouped by Abill (SUBSTRING(billno,1,2))
   movements:           (company, branch, branchcode, mid, brand, from, to) => call('movements',       { company, branch, branchcode, mid, brand, from, to }),
   // LV7: FIFO lot grid — pass branchcode for POS.material_{branchcode}

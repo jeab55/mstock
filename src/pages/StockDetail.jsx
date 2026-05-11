@@ -11,6 +11,7 @@ import ModalFindBrand from '../components/mstock/ModalFindBrand';
 import ModalFindBranch from '../components/mstock/ModalFindBranch';
 import ModalFindSubtype from '../components/mstock/ModalFindSubtype';
 import ModalMidPicker from '../components/mstock/ModalMidPicker';
+import ModalFindMids from '../components/mstock/ModalFindMids.jsx';
 import { useAppStore } from '../store/appStore';
 import { useBranches } from '../hooks/useStockData';
 
@@ -20,11 +21,12 @@ export default function StockDetail() {
   // Auto-load branches + set default branch on mount
   useBranches();
 
-  // F2 → open mtype (ชนิด) modal, F3 → open brand (ประเภท) modal, F8 → open branch modal
+  // F2 → open mtype (ชนิด) modal, F3 → open brand (ประเภท) modal, F7 → open find mids modal, F8 → open branch modal
   useEffect(() => {
     const onKey = (e) => {
       if (e.key === 'F2') { e.preventDefault(); setModalOpen('brand'); }
       if (e.key === 'F3') { e.preventDefault(); setModalOpen('subtype'); }
+      if (e.key === 'F7') { e.preventDefault(); setModalOpen('findmids'); }
       if (e.key === 'F8') { e.preventDefault(); setModalOpen('branch'); }
     };
     window.addEventListener('keydown', onKey);
@@ -38,7 +40,7 @@ export default function StockDetail() {
       <TabBar activeTab={activeTab} onTabChange={setActiveTab} />
 
       <div className="flex-1 flex flex-col overflow-hidden bg-white border border-gray-400 border-t-0">
-        {activeTab === 'rakarn'    && <TabRakarn onOpenBrand={() => setModalOpen('brand')} onOpenMid={() => setModalOpen('mid')} onOpenMsubtype={() => setModalOpen('subtype')} />}
+        {activeTab === 'rakarn'    && <TabRakarn onOpenBrand={() => setModalOpen('brand')} onOpenMid={() => setModalOpen('mid')} onOpenMsubtype={() => setModalOpen('subtype')} onOpenFindMids={() => setModalOpen('findmids')} />}
         {activeTab === 'chanid'    && <TabChanid />}
         {activeTab === 'chanidyoi' && <TabChanidYoi />}
         {activeTab === 'tabsheet6' && <TabSheet6 />}
@@ -50,6 +52,7 @@ export default function StockDetail() {
       {modalOpen === 'brand'  && <ModalFindBrand  onClose={() => setModalOpen(null)} />}
       {modalOpen === 'subtype' && <ModalFindSubtype onClose={() => setModalOpen(null)} />}
       {modalOpen === 'mid'    && <ModalMidPicker   onClose={() => setModalOpen(null)} />}
+      {modalOpen === 'findmids' && <ModalFindMids onClose={() => setModalOpen(null)} />}
     </div>
   );
 }

@@ -18,16 +18,18 @@ export const useAppStore = create((set) => ({
   selectedMtype:    '101',   // mtype.id — default เนื้อหมู (=101 in mtype table)
   selectedBrand:    null,    // brand.id — optional, filtered by selectedMtype
   selectedMid:      null,
+  customMidList:    null,    // array of mid for custom search (filter override)
   activeTab:        'rakarn',
   modalOpen:        null,
   statusSecond:     '',
 
-  setCompany:        (c)  => set({ selectedCompany: c, selectedBranch: DEFAULT_BRANCH, selectedMid: null }),
+  setCompany:        (c)  => set({ selectedCompany: c, selectedBranch: DEFAULT_BRANCH, selectedMid: null, customMidList: null }),
   setBranch:         (b)  => set({ selectedBranch: b }),
   setDateRange:      (dr) => set({ dateRange: dr }),
-  setSelectedMtype:  (id) => set({ selectedMtype: id, selectedMid: null, selectedBrand: null }),
+  setSelectedMtype:  (id) => set({ selectedMtype: id, selectedMid: null, selectedBrand: null, customMidList: null }),
   setSelectedBrand:  (id) => set({ selectedBrand: id }),
   setSelectedMid:    (mid)=> set({ selectedMid: mid }),
+  setCustomMidList:  (mids)=> set({ customMidList: mids }),
   setActiveTab:      (tab)=> set({ activeTab: tab }),
   setModalOpen:      (m)  => set({ modalOpen: m }),
   setStatusSecond:   (s)  => set({ statusSecond: s }),

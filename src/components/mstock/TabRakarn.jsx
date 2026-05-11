@@ -38,8 +38,8 @@ const LV7_COLS = [
   { key: 'cost',   label: 'Cost',   width: 90, align: 'right' },
 ];
 
-export default function TabRakarn({ onOpenBrand, onOpenMid, onOpenMsubtype }) {
-  const { selectedBranch, dateRange, selectedMid, setSelectedMid, setStatusSecond, selectedMtype } = useAppStore();
+export default function TabRakarn({ onOpenBrand, onOpenMid, onOpenMsubtype, onOpenFindMids }) {
+  const { selectedBranch, dateRange, selectedMid, setSelectedMid, setStatusSecond, selectedMtype, customMidList, setCustomMidList } = useAppStore();
   const [busy, setBusy] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
 
@@ -50,10 +50,11 @@ export default function TabRakarn({ onOpenBrand, onOpenMid, onOpenMsubtype }) {
     const onKey = (e) => {
       if (e.key === 'F2') { e.preventDefault(); onOpenBrand?.(); }
       if (e.key === 'F3') { e.preventDefault(); onOpenMsubtype?.(); }
+      if (e.key === 'F7') { e.preventDefault(); onOpenFindMids?.(); }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [onOpenBrand, onOpenMsubtype]);
+  }, [onOpenBrand, onOpenMsubtype, onOpenFindMids]);
 
   // ── Real API data ──────────────────────────────────────────────────────────
   const { rows: lv1Rows, loading: lv1Loading } = useLV1();
@@ -86,10 +87,15 @@ export default function TabRakarn({ onOpenBrand, onOpenMid, onOpenMsubtype }) {
     return { carry, debit, credit, total };
   }, [lv1Rows]);
 
-  const lv1Header = useMemo(() => ({
-    header:    { mid: '+' + selectedBranch.name, info: '', carry: '', debit: dateRange.from.slice(2), credit: dateRange.to.slice(2), total: '' },
-    subHeader: { mid: '[-', info: '', carry: lv1Summary.carry, debit: lv1Summary.debit, credit: lv1Summary.credit, total: lv1Summary.total },
-  }), [selectedBranch, dateRange, lv1Summary]);
+  const lv1Header = useMemo(() => {
+    const headerLabel = customMidList 
+      ? `+ค้นเฉพาะ ${customMidList.length} รหัส` 
+      : '+' + selectedBranch.name;
+    return {
+      header:    { mid: headerLabel, info: '', carry: '', debit: dateRange.from.slice(2), credit: dateRange.to.slice(2), total: '' },
+      subHeader: { mid: '[-', info: '', carry: lv1Summary.carry, debit: lv1Summary.debit, credit: lv1Summary.credit, total: lv1Summary.total },
+    };
+  }, [selectedBranch, dateRange, lv1Summary, customMidList]);
 
   // Selected mid info
   const selectedMidInfo = useMemo(() => lv1Rows.find(r => r.mid === selectedMid), [lv1Rows, selectedMid]);
@@ -145,14 +151,15 @@ export default function TabRakarn({ onOpenBrand, onOpenMid, onOpenMsubtype }) {
   const noDataTip2 = !selectedMid ? 'เลือก mid ในกริดซ้ายก่อน' : noDataTip;
   const toolbarButtons = [
     { icon: '📑', iconKey: '📑', label: 'ชนิด',    onClick: onOpenBrand, group: 0 },
-    { icon: '📋', iconKey: '📋', label: 'ประเภท',  onClick: onOpenMsubtype, disabled: !selectedMtype, title: !selectedMtype ? 'เลือกชนิดก่อน' : undefined, group: 0 },
+    { icon: '📋', iconKey: '📋', label: 'ประเภท',  onClick: onOpenMsubtype, disabled: !selectedMtype || !!customMidList, title: customMidList ? 'ล้างค้นก่อน' : (!selectedMtype ? 'เลือกชนิดก่อน' : undefined), group: 0 },
     { icon: '🖨', iconKey: '🖨', label: 'พิมพ์ย่อ',  onClick: handlePrint1,  disabled: !hasData || !!busy, loading: busy === 'p1', title: noDataTip || 'พิมพ์ LV1 (สรุปสต๊อก) A4 ตั้ง', group: 1 },
     { icon: '🖨', iconKey: '🖨', label: 'พิมพ์ละเอียด',  onClick: handlePrint2,  disabled: !selectedMid || !!busy, loading: busy === 'p2', title: noDataTip2 || 'พิมพ์ LV2 (movement detail) A4 แนวนอน', group: 1 },
     { icon: '📤', iconKey: '📤', label: 'Excel', onClick: handleExcel,   disabled: !hasData || !!busy, loading: busy === 'e1', title: noDataTip || 'ส่งออก LV1 เป็นไฟล์ Excel', group: 2 },
     { icon: '📄', iconKey: '📄', label: 'PDF', onClick: handlePDF,     disabled: !selectedMid || !!busy, loading: busy === 'e2', title: noDataTip2 || 'ส่งออก LV2 เป็นไฟล์ PDF', group: 2 },
     { icon: '❓', iconKey: '❓', label: 'ค้นรหัส',     onClick: onOpenMid, title: 'ค้นหารหัสสินค้า', group: 3 },
-    { icon: '💲', iconKey: '💲', label: 'ค้นราคา',  onClick: () => {}, title: 'ค้นหาข้อมูลราคา', group: 3 },
-  ];
+    { icon: '💲', iconKey: '💲', label: 'ค้นราคา',  onClick: onOpenFindMids, title: 'ค้นหารหัสสินค้าหลายตัวพร้อมกัน (F7)', group: 3 },
+    customMidList && { icon: 'X', iconKey: 'X', label: 'ล้างค้น',  onClick: () => setCustomMidList(null), title: 'กลับไปใช้ filter ชนิด/ประเภท', group: 3 },
+  ].filter(Boolean);
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">

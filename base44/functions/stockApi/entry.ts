@@ -124,19 +124,33 @@ Deno.serve(async (req) => {
       return Response.json({ rows });
     }
 
-    // ── stockcard (LV1) — Delphi exact SQL (filter by mtype.typeid + optional brand.id) ─────
+    // ── stockcard (LV1) — Delphi exact SQL (filter by mtype.typeid + optional brand.id, or custom mids list) ─────
     if (action === 'stockcard') {
-      const { branch, mtype, brand, from: date1, to: date2 } = params;
-      if (!branch || !mtype || !date1 || !date2) return Response.json({ error: 'branch, mtype, from, to required' }, { status: 400 });
+      const { branch, mtype, brand, from: date1, to: date2, mids: customMids } = params;
+      if (!branch || !date1 || !date2) return Response.json({ error: 'branch, from, to required' }, { status: 400 });
+      
+      const isCustom = Array.isArray(customMids) && customMids.length > 0;
+      if (!isCustom && !mtype) return Response.json({ error: 'mtype or mids required' }, { status: 400 });
 
       const d1time = `${date1} 00:00:00`;
       const d2time = `${date2} 23:59:59`;
-      const args = [d1time, d1time, d1time, d2time, d1time, d2time, Number(branch), Number(mtype)];
+      const args = [d1time, d1time, d1time, d2time, d1time, d2time, Number(branch)];
 
-      let where = `WHERE a.branchid = ? AND m.typeid = ?`;
-      if (brand) {
-        where += ` AND m.brand = ?`;
-        args.push(Number(brand));
+      let where = `WHERE a.branchid = ?`;
+      
+      if (isCustom) {
+        // Custom mids filter
+        const placeholders = customMids.map(() => '?').join(',');
+        where += ` AND a.mid IN (${placeholders})`;
+        args.push(...customMids);
+      } else {
+        // mtype + optional brand filter
+        where += ` AND m.typeid = ?`;
+        args.push(Number(mtype));
+        if (brand) {
+          where += ` AND m.brand = ?`;
+          args.push(Number(brand));
+        }
       }
 
       const rows = await query(company, `

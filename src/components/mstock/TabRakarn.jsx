@@ -1,8 +1,10 @@
 import React, { useMemo, useEffect, useState, useCallback } from 'react';
 import Toolbar from './Toolbar';
 import ListView from './ListView';
+import LoadingOverlay from './LoadingOverlay';
 import { useAppStore } from '../../store/appStore';
-import { buildLV1Rows, buildLV2Rows, computeLots, computeAvgPrice, computeCurrentPrice, computeMidStock, getMaterial } from '../../lib/calc';
+import { useLV1, useLV2, useLots } from '../../hooks/useStockData';
+import { computeAvgPrice } from '../../lib/calc';
 import { printLV1, printLV1LV2, exportExcel, exportPDF } from '../../lib/reportExport';
 import { base44 } from '@/api/base44Client';
 
@@ -34,11 +36,10 @@ const LV7_COLS = [
 ];
 
 export default function TabRakarn({ onOpenType, onOpenBrand, onOpenMid, onOpenSubtype }) {
-  const { selectedBranch, dateRange, selectedMid, selectedMtype, selectedMsubtype, selectedBrand, setSelectedMid, setStatusSecond } = useAppStore();
-  const [busy, setBusy] = useState(null); // 'p1'|'p2'|'e1'|'e2'|null
-
-  // Get current user once
+  const { selectedBranch, dateRange, selectedMid, setSelectedMid, setStatusSecond } = useAppStore();
+  const [busy, setBusy] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
+
   useEffect(() => { base44.auth.me().then(u => setCurrentUser(u)).catch(() => {}); }, []);
 
   // F3 shortcut
@@ -47,70 +48,55 @@ export default function TabRakarn({ onOpenType, onOpenBrand, onOpenMid, onOpenSu
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [onOpenSubtype]);
-  // Use selectedBranch.id (e.g. "0000") matching STOCK_MOVES.branch_id
-  const branchid = selectedBranch.id;
-  const { from: date1, to: date2 } = dateRange;
 
-  // LV1 rows — filter by msubtype (brand prefix match) if set
-  const lv1Rows = useMemo(() => {
-    let rows = buildLV1Rows(branchid, date1, date2, selectedMtype || null, selectedBrand || null);
-    if (selectedMsubtype && selectedMsubtype !== '-SUM') {
-      rows = rows.filter(r => String(r.mid).startsWith(selectedMsubtype));
-    }
-    return rows;
-  }, [branchid, date1, date2, selectedMtype, selectedBrand, selectedMsubtype]);
+  // ── Real API data ──────────────────────────────────────────────────────────
+  const { rows: lv1Rows, loading: lv1Loading } = useLV1();
+  const { rows: lv2Rows, loading: lv2Loading } = useLV2();
+  const { lots, salePrice, loading: lotsLoading } = useLots();
+
+  const lv7Rows = useMemo(() => lots.map((l, i) => ({
+    lot:    String(l.lotid),
+    billno: l.billno,
+    adate:  String(l.adate).slice(0, 10),
+    debit:  l.debit,
+    calc:   l.calc,
+    cost:   l.cost,
+    _lotIdx: i,
+  })), [lots]);
+
+  const avgPrice = useMemo(() => computeAvgPrice(lots), [lots]);
 
   const selectedLv1Index = useMemo(() =>
     lv1Rows.findIndex(r => r.mid === selectedMid),
     [lv1Rows, selectedMid]
   );
 
-  // LV1 header
-  const lv1Header = useMemo(() => {
-    const mat   = getMaterial(selectedMid);
-    const stock = computeMidStock(selectedMid, selectedBranch.id, date1, date2);
-    return {
-      header:    { mid: '+' + selectedBranch.name, info: mat?.info || '', carry: '', debit: date1.slice(2), credit: date2.slice(2), total: '' },
-      subHeader: { mid: '[-', info: mat?.info || '', carry: stock.carry, debit: stock.debit, credit: stock.credit, total: stock.total },
-    };
-  }, [selectedMid, selectedBranch, date1, date2]);
+  // LV1 header summary
+  const lv1Summary = useMemo(() => {
+    const carry  = lv1Rows.reduce((a, r) => a + (r.carry  || 0), 0);
+    const debit  = lv1Rows.reduce((a, r) => a + (r.debit  || 0), 0);
+    const credit = lv1Rows.reduce((a, r) => a + (r.credit || 0), 0);
+    const total  = lv1Rows.reduce((a, r) => a + (r.total  || 0), 0);
+    return { carry, debit, credit, total };
+  }, [lv1Rows]);
 
-  // LV2 rows — use selectedBranch.id (e.g. "0000") matching STOCK_MOVES.branch_id
-  const lv2Rows = useMemo(() =>
-    buildLV2Rows(selectedMid, selectedBranch.id, date1, date2),
-    [selectedMid, selectedBranch, date1, date2]
-  );
+  const lv1Header = useMemo(() => ({
+    header:    { mid: '+' + selectedBranch.name, info: '', carry: '', debit: dateRange.from.slice(2), credit: dateRange.to.slice(2), total: '' },
+    subHeader: { mid: '[-', info: '', carry: lv1Summary.carry, debit: lv1Summary.debit, credit: lv1Summary.credit, total: lv1Summary.total },
+  }), [selectedBranch, dateRange, lv1Summary]);
 
-  // LV2 header
+  // Selected mid info
+  const selectedMidInfo = useMemo(() => lv1Rows.find(r => r.mid === selectedMid), [lv1Rows, selectedMid]);
+
   const lv2Header = useMemo(() => {
-    const mat   = getMaterial(selectedMid);
-    const stock = computeMidStock(selectedMid, selectedBranch.id, date1, date2);
+    const s = selectedMidInfo || {};
     return {
-      header:    { abill: '+' + selectedBranch.name.slice(0, 14), billno: selectedMid, adate: mat?.info || '', debit: date1.slice(2), credit: date2.slice(2), at: `${stock.carry.toFixed(2)} | ${stock.debit.toFixed(2)} | ${stock.credit.toFixed(2)} | ${stock.total.toFixed(2)}` },
-      subHeader: { abill: '[-', billno: mat?.info || '', adate: '', debit: stock.carry, credit: stock.debit, at: `${stock.credit.toFixed(2)}    ${stock.total.toFixed(2)}` },
+      header:    { abill: '+' + selectedBranch.name.slice(0, 14), billno: selectedMid || '', adate: s.info || '', debit: dateRange.from.slice(2), credit: dateRange.to.slice(2), at: `${(s.carry||0).toFixed(2)} | ${(s.debit||0).toFixed(2)} | ${(s.credit||0).toFixed(2)} | ${(s.total||0).toFixed(2)}` },
+      subHeader: { abill: '[-', billno: s.info || '', adate: '', debit: s.carry || '', credit: s.debit || '', at: `${(s.credit||0).toFixed(2)}    ${(s.total||0).toFixed(2)}` },
     };
-  }, [selectedMid, selectedBranch, date1, date2]);
-
-  // LV7 lots: lot1=black bg/white text (current), lot2+N=red text
-  const lv7Rows = useMemo(() => {
-    const lots = computeLots(selectedMid, branchid);
-    return lots.map((l, i) => ({
-      lot:    String(l.lotid),
-      billno: l.billno,
-      adate:  l.adate,
-      debit:  l.debit,
-      calc:   l.calc,
-      cost:   l.cost,
-      _lotIdx: i, // 0=newest/current
-    }));
-  }, [selectedMid, branchid]);
-
-  const avgPrice    = useMemo(() => computeAvgPrice(lv7Rows), [lv7Rows]);
-  const salePrice   = useMemo(() => computeCurrentPrice(selectedMid), [selectedMid]);
-  const mat         = getMaterial(selectedMid);
+  }, [selectedMid, selectedMidInfo, selectedBranch, dateRange]);
 
   const hasData = lv1Rows.length > 0;
-  const reportCtx = { selectedBranch, dateRange, selectedMtype, selectedMsubtype, user: currentUser };
 
   const runAsync = useCallback(async (key, fn) => {
     if (busy) return;
@@ -118,12 +104,14 @@ export default function TabRakarn({ onOpenType, onOpenBrand, onOpenMid, onOpenSu
     try { await fn(); } finally { setBusy(null); }
   }, [busy]);
 
-  const handlePrint1    = () => runAsync('p1', async () => printLV1(lv1Rows, reportCtx));
-  const handlePrint2    = () => runAsync('p2', async () => printLV1LV2(lv1Rows, reportCtx));
-  const handleExcel     = () => runAsync('e1', async () => exportExcel(lv1Rows, { ...reportCtx }));
-  const handlePDF       = () => runAsync('e2', async () => exportPDF(lv1Rows, reportCtx));
+  const { selectedCompany, selectedMtype, selectedMsubtype } = useAppStore();
+  const reportCtx = { selectedBranch, dateRange, selectedMtype, selectedMsubtype, user: currentUser };
 
-  // Keyboard shortcuts
+  const handlePrint1 = () => runAsync('p1', async () => printLV1(lv1Rows, reportCtx));
+  const handlePrint2 = () => runAsync('p2', async () => printLV1LV2(lv1Rows, reportCtx));
+  const handleExcel  = () => runAsync('e1', async () => exportExcel(lv1Rows, reportCtx));
+  const handlePDF    = () => runAsync('e2', async () => exportPDF(lv1Rows, reportCtx));
+
   useEffect(() => {
     const onKey = (e) => {
       if (e.key === 'F5') { e.preventDefault(); if (hasData) handlePrint1(); }
@@ -143,8 +131,8 @@ export default function TabRakarn({ onOpenType, onOpenBrand, onOpenMid, onOpenSu
 
   const handleLv2DblClick = (i, row) => {
     if (!row.billno) return;
-    const mat2 = getMaterial(selectedMid);
-    setStatusSecond(`${row.debit || row.credit} X 1 = ${mat2?.cost?.toFixed(2) || ''} [ ${row.billno} ]`);
+    const info = selectedMidInfo?.info || '';
+    setStatusSecond(`${row.debit || row.credit} X 1 = ${avgPrice.toFixed(2)} [ ${row.billno} ]`);
   };
 
   const noDataTip = !hasData ? 'ไม่มีข้อมูลให้พิมพ์/ส่งออก' : undefined;
@@ -163,9 +151,10 @@ export default function TabRakarn({ onOpenType, onOpenBrand, onOpenMid, onOpenSu
     <div className="flex-1 flex flex-col overflow-hidden">
       <Toolbar buttons={toolbarButtons} />
       <div className="flex-1 flex overflow-hidden">
-        {/* Left: LV1 + LV7 — 38% */}
+        {/* Left: LV1 + LV7 */}
         <div className="flex flex-col overflow-hidden flex-shrink-0" style={{ width: '38%' }}>
-          <div className="overflow-hidden" style={{ height: '70%' }}>
+          <div className="overflow-hidden relative" style={{ height: '70%' }}>
+            {lv1Loading && <LoadingOverlay />}
             <ListView
               columns={LV1_COLS}
               rows={lv1Rows}
@@ -176,7 +165,8 @@ export default function TabRakarn({ onOpenType, onOpenBrand, onOpenMid, onOpenSu
               className="h-full"
             />
           </div>
-          <div className="overflow-hidden" style={{ height: '30%' }}>
+          <div className="overflow-hidden relative" style={{ height: '30%' }}>
+            {lotsLoading && <LoadingOverlay />}
             <ListView
               columns={LV7_COLS}
               rows={lv7Rows}
@@ -188,8 +178,9 @@ export default function TabRakarn({ onOpenType, onOpenBrand, onOpenMid, onOpenSu
             />
           </div>
         </div>
-        {/* Right: LV2 — 62% (fills remaining space) */}
-        <div className="overflow-hidden flex flex-col flex-1">
+        {/* Right: LV2 */}
+        <div className="overflow-hidden flex flex-col flex-1 relative">
+          {lv2Loading && <LoadingOverlay />}
           <ListView
             columns={LV2_COLS}
             rows={lv2Rows}

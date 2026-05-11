@@ -2,7 +2,11 @@ import React, { useState } from 'react';
 import { ChevronDown, User } from 'lucide-react';
 import { useAppStore } from '../../store/appStore';
 
-const COMPANIES = ["MMM", "TUR", "MMD"];
+const COMPANIES = [
+  { id: "MMM", label: "MMM — มั่งมี" },
+  { id: "TUR", label: "TUR — ทองอุไร" },
+  { id: "MMD", label: "MMD — mmd" },
+];
 
 export default function Header() {
   const { selectedCompany, setCompany } = useAppStore();

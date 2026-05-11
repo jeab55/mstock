@@ -1,32 +1,29 @@
 import { create } from 'zustand';
-import { BRANCHES } from '../data/mockData';
 
-const DEFAULT_BRANCH = BRANCHES[0].items[0]; // สำนักงานใหญ่
+// Default branch placeholder — will be replaced when branches load from API
+// MMM branch_id=1 is สาขา ปตท บ้านไผ่ (first branch)
+const DEFAULT_BRANCH = { id: '1', code: '1', name: 'Loading...', address: '' };
 
-// Default to current month; data is seeded for May 2026
 const today = new Date();
 const y = today.getFullYear();
-const m = today.getMonth(); // 0-indexed
-const firstDay = new Date(y, m, 1);
-const lastDay  = new Date(y, m + 1, 0);
+const m = today.getMonth();
 const fmt = (d) => d.toISOString().slice(0, 10);
-// Use May 2026 as default so test data shows immediately
-const DEFAULT_FROM = '2026-05-01';
-const DEFAULT_TO   = '2026-05-31';
+const DEFAULT_FROM = fmt(new Date(y, m, 1));
+const DEFAULT_TO   = fmt(new Date(y, m + 1, 0));
 
 export const useAppStore = create((set, get) => ({
   selectedCompany: 'MMM',
   selectedBranch: DEFAULT_BRANCH,
   dateRange: { from: DEFAULT_FROM, to: DEFAULT_TO },
-  selectedMtype: '101',
+  selectedMtype: null,
   selectedMsubtype: null,
-  selectedBrand: '501',
-  selectedMid: '101006',
+  selectedBrand: null,
+  selectedMid: null,
   activeTab: 'rakarn',
   modalOpen: null,
   statusSecond: '',
 
-  setCompany: (c) => set({ selectedCompany: c, selectedBranch: DEFAULT_BRANCH }),
+  setCompany: (c) => set({ selectedCompany: c, selectedBranch: DEFAULT_BRANCH, selectedMid: null }),
   setBranch: (b) => set({ selectedBranch: b }),
   setDateRange: (dr) => set({ dateRange: dr }),
   setSelectedMtype: (id) => set({ selectedMtype: id }),

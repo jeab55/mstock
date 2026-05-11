@@ -134,9 +134,10 @@ Deno.serve(async (req) => {
 
       const d1time = `${date1} 00:00:00`;
       const d2time = `${date2} 23:59:59`;
-      const args = [d1time, d1time, d1time, d2time, d1time, d2time, Number(branch)];
+      const args = [d1time, d1time, d1time, d2time, d1time, d2time];
 
       let where = `WHERE a.branchid = ?`;
+      args.push(Number(branch));
       
       if (isCustom) {
         // Custom mids filter

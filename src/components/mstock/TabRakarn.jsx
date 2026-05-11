@@ -16,12 +16,12 @@ const LV1_COLS = [
 ];
 
 const LV2_COLS = [
-  { key: 'abill',  label: 'Abill',   width: 60 },
-  { key: 'billno', label: 'Billno',  width: 160 },
-  { key: 'adate',  label: 'Adate',   width: 80 },
+  { key: 'abill',  label: 'Abill',   width: 55 },
+  { key: 'billno', label: 'Billno',  width: 155 },
+  { key: 'adate',  label: 'Adate',   width: 75 },
   { key: 'debit',  label: 'Debit+',  width: 70, align: 'right' },
   { key: 'credit', label: 'Credit-', width: 70, align: 'right' },
-  { key: 'at',     label: '@T',      width: 140 },
+  { key: 'at',     label: '@T',      width: 180 },
 ];
 
 const LV7_COLS = [
@@ -163,8 +163,8 @@ export default function TabRakarn({ onOpenType, onOpenBrand, onOpenMid, onOpenSu
     <div className="flex-1 flex flex-col overflow-hidden">
       <Toolbar buttons={toolbarButtons} />
       <div className="flex-1 flex overflow-hidden">
-        {/* Left: LV1 + LV7 */}
-        <div className="flex flex-col overflow-hidden" style={{ width: '56%' }}>
+        {/* Left: LV1 + LV7 — 38% */}
+        <div className="flex flex-col overflow-hidden flex-shrink-0" style={{ width: '38%' }}>
           <div className="overflow-hidden" style={{ height: '70%' }}>
             <ListView
               columns={LV1_COLS}
@@ -188,8 +188,8 @@ export default function TabRakarn({ onOpenType, onOpenBrand, onOpenMid, onOpenSu
             />
           </div>
         </div>
-        {/* Right: LV2 */}
-        <div className="overflow-hidden flex flex-col" style={{ width: '44%' }}>
+        {/* Right: LV2 — 62% (fills remaining space) */}
+        <div className="overflow-hidden flex flex-col flex-1">
           <ListView
             columns={LV2_COLS}
             rows={lv2Rows}

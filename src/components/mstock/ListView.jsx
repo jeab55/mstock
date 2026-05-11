@@ -123,13 +123,15 @@ export default function ListView({ columns, rows, headerRow, subHeaderRow, onRow
                 return (
                   <div
                     key={ci}
-                    className="text-xs px-1.5 py-px truncate flex-shrink-0"
+                    className="text-xs px-1.5 py-px flex-shrink-0"
                     style={{
                       width: col.width,
                       minWidth: col.width,
                       textAlign: col.align || 'left',
                       borderBottom: '1px solid #f0f0f0',
                       color: isRed ? '#ff0000' : undefined,
+                      overflow: ci === columns.length - 1 ? 'visible' : 'hidden',
+                      whiteSpace: 'nowrap',
                     }}
                   >
                     {display}

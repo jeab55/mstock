@@ -2,7 +2,7 @@
  * ModalFindMids — ค้นราคาสินค้าหลายตัว (ใส่ mid หลายตัวคั่นด้วย comma/space/newline หรือใช้ AI)
  */
 import React, { useState, useRef, useEffect } from 'react';
-import { X, Wand2 } from 'lucide-react';
+import { X, Wand2, Copy } from 'lucide-react';
 import { useAppStore } from '../../store/appStore';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
@@ -58,6 +58,16 @@ export default function ModalFindMids({ onClose }) {
     setInput('');
     setAiQuery('');
     textareaRef.current?.focus();
+  };
+
+  const handleCopy = () => {
+    if (!input.trim()) {
+      toast.warning('ไม่มีข้อมูลที่จะคัดลอก');
+      return;
+    }
+    navigator.clipboard.writeText(input).then(() => {
+      toast.success('คัดลอกแล้ว');
+    });
   };
 
   useEffect(() => {
@@ -133,6 +143,16 @@ export default function ModalFindMids({ onClose }) {
             style={{ background: '#d4d0c8', border: '1px solid #999' }}
           >
             ล้าง
+          </button>
+          <button
+            onClick={handleCopy}
+            disabled={!input.trim()}
+            className="delphi-btn px-4 py-1 text-xs flex items-center gap-1"
+            style={{ background: input.trim() ? '#d4d0c8' : '#ccc', border: '1px solid #999' }}
+            title="คัดลอกรหัสสินค้า"
+          >
+            <Copy className="w-3 h-3" />
+            Copy
           </button>
           <button
             onClick={handleSearch}

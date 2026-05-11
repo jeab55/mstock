@@ -5,9 +5,11 @@ const DEFAULT_BRANCH = { id: '', code: '', name: 'Loading...', address: '' };
 const today = new Date();
 const y = today.getFullYear();
 const m = today.getMonth();
-const fmt = (d) => d.toISOString().slice(0, 10);
-const DEFAULT_FROM = fmt(new Date(y, m, 1));
-const DEFAULT_TO   = fmt(new Date(y, m + 1, 0));
+function fmtLocal(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+const DEFAULT_FROM = fmtLocal(new Date(y, m, 1));
+const DEFAULT_TO   = fmtLocal(new Date(y, m + 1, 0));
 
 export const useAppStore = create((set) => ({
   selectedCompany:  'MMM',

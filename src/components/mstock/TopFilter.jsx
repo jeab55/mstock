@@ -6,25 +6,31 @@ const today = new Date();
 
 const MONTH_NAMES = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
 
-function fmt(d) { return d.toISOString().slice(0, 10); }
+// Use local date methods — never toISOString() which converts to UTC and shifts date at UTC+7
+function fmt(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${dd}`;
+}
 function parseDate(s) { return new Date(s + 'T00:00:00'); }
 
-// ISO week number
+// ISO week number (local date only)
 function getWeek(d) {
-  const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-  date.setUTCDate(date.getUTCDate() + 4 - (date.getUTCDay() || 7));
-  const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
-  return Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
+  const thu = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 4 - (d.getDay() || 7));
+  const yearStart = new Date(thu.getFullYear(), 0, 1);
+  return Math.ceil((((thu - yearStart) / 86400000) + 1) / 7);
 }
 
 function weekRange(year, week) {
-  const jan4 = new Date(Date.UTC(year, 0, 4));
-  const startOfWeek1 = new Date(jan4);
-  startOfWeek1.setUTCDate(jan4.getUTCDate() - (jan4.getUTCDay() || 7) + 1);
-  const mon = new Date(startOfWeek1);
-  mon.setUTCDate(startOfWeek1.getUTCDate() + (week - 1) * 7);
+  // Use local date — find Monday of ISO week 1, then offset by (week-1)*7
+  const jan4 = new Date(year, 0, 4);
+  const dow = jan4.getDay() || 7; // 1=Mon..7=Sun
+  const mon1 = new Date(year, 0, 4 - dow + 1);
+  const mon = new Date(mon1);
+  mon.setDate(mon1.getDate() + (week - 1) * 7);
   const sun = new Date(mon);
-  sun.setUTCDate(mon.getUTCDate() + 6);
+  sun.setDate(mon.getDate() + 6);
   return { from: fmt(mon), to: fmt(sun) };
 }
 

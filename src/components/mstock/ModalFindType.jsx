@@ -14,12 +14,13 @@ export default function ModalFindType({ onClose }) {
   const [hoveredIdx, setHoveredIdx] = useState(-1);
 
   const filtered = useMemo(() => {
-    if (!search) return MTYPES;
-    const q = search.toLowerCase();
-    return MTYPES.filter(r =>
-      String(r.id).toLowerCase().includes(q) ||
-      r.name.toLowerCase().includes(q)
-    );
+    const base = !search
+      ? MTYPES
+      : MTYPES.filter(r => {
+          const q = search.toLowerCase();
+          return String(r.id).toLowerCase().includes(q) || r.name.toLowerCase().includes(q);
+        });
+    return [...base, { id: '-SUM', name: 'สรุปยอด' }];
   }, [search]);
 
   const handleSelect = (row) => {
@@ -71,18 +72,20 @@ export default function ModalFindType({ onClose }) {
 
           {/* Rows */}
           {filtered.map((row, ri) => {
+            const isSUM = row.id === '-SUM';
             const isSelected = row.id === selectedMtype;
-            const isHovered = hoveredIdx === ri && !isSelected;
-            let bg = '#ffffff';
-            if (isSelected) bg = '#316ac5';
+            const isHovered = hoveredIdx === ri && !isSelected && !isSUM;
+            let bg = isSUM ? '#8EA583' : '#ffffff';
+            let color = isSUM ? '#ffffff' : '#000000';
+            if (isSelected) { bg = '#316ac5'; color = '#ffffff'; }
             else if (isHovered) bg = '#e8f0fa';
 
             return (
               <div
                 key={ri}
-                className="flex cursor-pointer flex-shrink-0"
-                style={{ background: bg, color: isSelected ? '#ffffff' : '#000000' }}
-                onClick={() => handleSelect(row)}
+                className={`flex flex-shrink-0 ${isSUM ? 'font-bold' : 'cursor-pointer'}`}
+                style={{ background: bg, color }}
+                onClick={() => !isSUM && handleSelect(row)}
                 onMouseEnter={() => setHoveredIdx(ri)}
                 onMouseLeave={() => setHoveredIdx(-1)}
               >

@@ -77,34 +77,34 @@ export function useLV2() {
         if (cancelled) return;
         const moves = data.rows || [];
 
-        // Helper: format time from timestamp (HH:mm)
-        const formatTime = (ts) => {
-          if (!ts) return '';
-          const str = String(ts);
-          if (str.length >= 5) {
-            const hh = str.substring(11, 13);
-            const mm = str.substring(14, 16);
-            return `${hh}:${mm}`;
-          }
-          return '';
+        // Helper: calc @T (value per unit) by doctype
+        const calcUnitValue = (row) => {
+          const ab = row.abill.toUpperCase();
+          const cost = parseFloat(row.cost) || 0;
+          const salePrice = parseFloat(row.sale_price) || 0;
+
+          // For CR/AP/CT/WS/CA: @T = cost (unit cost)
+          if (ab === 'CR' || ab === 'AP' || ab === 'CT' || ab === 'WS' || ab === 'CA') return cost;
+          // For OS (ขาย): @T = profit per unit = (sale_price - cost)
+          if (ab === 'OS') return salePrice - cost;
+          // Default: cost
+          return cost;
         };
 
-        // Helper: calc value by doctype using stockcard.cost
-        const calcValue = (row) => {
+        // Helper: calc total value by doctype
+        const calcValue = (row, unitValue) => {
           const ab = row.abill.toUpperCase();
-          const cost = parseFloat(row.row_cost) || 0;  // stockcard.cost
-          const salePrice = parseFloat(row.sale_price) || 0;
           const deb = parseFloat(row.debit) || 0;
           const cred = parseFloat(row.credit) || 0;
 
-          // For CR/AP/CT (รับเข้า): มูลค่า = debit × cost
-          if (ab === 'CR' || ab === 'AP' || ab === 'CT') return deb * cost;
-          // For OS (ขาย): profit = (sale_price - cost) × qty
-          if (ab === 'OS') return (salePrice - cost) * cred;
-          // For WS (ลดลง): loss = -(cost × qty)
-          if (ab === 'WS') return -(cred * cost);
-          // Default: use cost
-          return (deb - cred) * cost;
+          // For CR/AP/CT: มูลค่า = @T × debit
+          if (ab === 'CR' || ab === 'AP' || ab === 'CT') return unitValue * deb;
+          // For OS: มูลค่า = @T × credit (profit per unit × qty)
+          if (ab === 'OS') return unitValue * cred;
+          // For WS: มูลค่า = -(@T × credit)
+          if (ab === 'WS') return -(unitValue * cred);
+          // Default
+          return unitValue * (deb - cred);
         };
 
         // Group by abill
@@ -129,19 +129,19 @@ export function useLV2() {
           for (const m of g) {
            const adateStr = String(m.stockdate || m.adate || '');
            const dateStr  = adateStr.slice(5, 10).replace('-', '/');
-           const timeStr  = adateStr.length > 10 ? adateStr.slice(11, 16) : '';
            const d = parseFloat(m.debit)  || 0;
            const c = parseFloat(m.credit) || 0;
-           const cost = parseFloat(m.row_cost) || 0;  // stockcard.cost
+           const cost = parseFloat(m.cost) || 0;
            const salePrice = parseFloat(m.sale_price) || 0;
 
-           let value = calcValue(m);
+           const unitValue = calcUnitValue(m);  // @T
+           const value = calcValue(m, unitValue);  // มูลค่า
            groupValue += value;
 
            // Track for OS special subtotal
            if (ab === 'OS') {
              groupSaleTotal += salePrice * c;  // ยอดขาย
-             groupCostTotal += cost * c;  // ต้นทุนขาย (cost of goods sold)
+             groupCostTotal += cost * c;  // ต้นทุนขาย
              groupProfitTotal += value;  // กำไร
              totalIncome += salePrice * c;
              totalCost += cost * c;
@@ -158,10 +158,10 @@ export function useLV2() {
              _isRow: true,
              abill:  ab,
              billno: m.billno,
-             adate:  dateStr + (timeStr ? ' ' + timeStr : ''),
+             adate:  dateStr,
              debit:  d > 0 ? d : '',
              credit: c > 0 ? c : '',
-             at:     formatTime(m.T),  // display as HH:mm
+             at:     unitValue,  // @T = value per unit
              value,
              cost,
              salePrice,

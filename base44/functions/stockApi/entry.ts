@@ -183,8 +183,7 @@ Deno.serve(async (req) => {
         args.push(Number(brand));
       }
 
-      // T field: stockcard.T (timestamp for HH:mm display)
-      // cost: stockcard.cost (unit cost per row — actual cost used for valuation)
+      // cost: stockcard.cost (unit cost per row)
       // sale_price: POS.material_{branchcode}.price3 (for OS profit calc)
       const rows = await query(company, `
         SELECT
@@ -193,8 +192,7 @@ Deno.serve(async (req) => {
           a.stockdate,
           a.debit,
           a.credit,
-          a.T,
-          a.cost AS row_cost,
+          a.cost,
           COALESCE(pm.price3, gm.price3, 0) AS sale_price
         FROM stockcard a
         INNER JOIN material gm ON a.mid = gm.mid

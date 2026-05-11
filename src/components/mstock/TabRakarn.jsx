@@ -158,8 +158,7 @@ export default function TabRakarn({ onOpenBrand, onOpenMid, onOpenMsubtype, onOp
     { icon: '📄', iconKey: '📄', label: 'PDF', onClick: handlePDF,     disabled: !selectedMid || !!busy, loading: busy === 'e2', title: noDataTip2 || 'ส่งออก LV2 เป็นไฟล์ PDF', group: 2 },
     { icon: '❓', iconKey: '❓', label: 'ค้นรหัส',     onClick: onOpenMid, title: 'ค้นหารหัสสินค้า', group: 3 },
     { icon: '💲', iconKey: '💲', label: 'ค้นราคา',  onClick: onOpenFindMids, title: 'ค้นหารหัสสินค้าหลายตัวพร้อมกัน (F7)', group: 3 },
-    customMidList && { icon: 'X', iconKey: 'X', label: 'ล้างค้น',  onClick: () => setCustomMidList(null), title: 'กลับไปใช้ filter ชนิด/ประเภท', group: 3 },
-  ].filter(Boolean);
+  ];
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">

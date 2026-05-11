@@ -1,6 +1,5 @@
 import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import { MTYPES, BRANDS } from '../data/mockData';
 import { buildLV2Rows, computeAvgPrice, computeFIFOLots, getMaterial } from './calc';
 
@@ -209,29 +208,51 @@ export function exportPDF(lv1Rows, { selectedBranch, dateRange, selectedMtype, s
     total:  a.total  + (r.total  || 0),
   }), { carry: 0, debit: 0, credit: 0, total: 0 });
 
-  const body = lv1Rows.map(r => [r.mid, r.info || '', fmt2(r.carry), fmt2(r.debit), fmt2(r.credit), fmt2(r.total)]);
-  body.push(['รวม', `${lv1Rows.length} รายการ`, fmt2(totals.carry), fmt2(totals.debit), fmt2(totals.credit), fmt2(totals.total)]);
+  // Draw table manually (no jspdf-autotable)
+  const colWidths = [22, 68, 20, 20, 20, 22];
+  const colX = [14];
+  for (let i = 0; i < colWidths.length - 1; i++) colX.push(colX[i] + colWidths[i]);
+  const rowH = 6;
+  const headers = ['รหัส', 'ชื่อสินค้า', 'ยกมา', 'รับเข้า', 'จ่ายออก', 'คงเหลือ'];
+  const pageW = doc.internal.pageSize.width;
+  const pageH = doc.internal.pageSize.height;
 
-  autoTable(doc, {
-    startY: 29,
-    head: [['รหัส', 'ชื่อสินค้า', 'ยกมา', 'รับเข้า', 'จ่ายออก', 'คงเหลือ']],
-    body,
-    styles: { font: 'helvetica', fontSize: 8, cellPadding: 1.5 },
-    headStyles: { fillColor: [200, 200, 200], textColor: 0 },
-    columnStyles: {
-      0: { cellWidth: 22 },
-      1: { cellWidth: 70 },
-      2: { cellWidth: 20, halign: 'right' },
-      3: { cellWidth: 20, halign: 'right' },
-      4: { cellWidth: 20, halign: 'right' },
-      5: { cellWidth: 20, halign: 'right' },
-    },
-    didDrawPage: (data) => {
-      const pageCount = doc.internal.getNumberOfPages();
-      doc.setFontSize(8);
-      doc.text(`หน้า ${data.pageNumber} / ${pageCount}`, doc.internal.pageSize.width - 20, doc.internal.pageSize.height - 8, { align: 'right' });
-    },
+  const drawRow = (cells, y, bold, bgGray) => {
+    if (bgGray) { doc.setFillColor(210, 210, 210); doc.rect(14, y, colWidths.reduce((a, b) => a + b, 0), rowH, 'F'); }
+    doc.setFont('helvetica', bold ? 'bold' : 'normal');
+    doc.setFontSize(8);
+    cells.forEach((cell, ci) => {
+      const isNum = ci >= 2;
+      const x = isNum ? colX[ci] + colWidths[ci] - 1 : colX[ci] + 1;
+      doc.text(String(cell), x, y + 4, { align: isNum ? 'right' : 'left', maxWidth: colWidths[ci] - 2 });
+    });
+    doc.setDrawColor(160);
+    doc.rect(14, y, colWidths.reduce((a, b) => a + b, 0), rowH);
+  };
+
+  let y = 29;
+  drawRow(headers, y, true, true);
+  y += rowH;
+
+  const allRows = [
+    ...lv1Rows.map(r => [r.mid, r.info || '', fmt2(r.carry), fmt2(r.debit), fmt2(r.credit), fmt2(r.total)]),
+    ['รวม', `${lv1Rows.length} รายการ`, fmt2(totals.carry), fmt2(totals.debit), fmt2(totals.credit), fmt2(totals.total)],
+  ];
+
+  allRows.forEach((row, ri) => {
+    if (y + rowH > pageH - 15) {
+      doc.addPage();
+      y = 14;
+      drawRow(headers, y, true, true);
+      y += rowH;
+    }
+    const isTotal = ri === allRows.length - 1;
+    drawRow(row, y, isTotal, isTotal);
+    y += rowH;
   });
+
+  doc.setFontSize(8);
+  doc.text(`หน้า 1 / ${doc.internal.getNumberOfPages()}`, pageW - 14, pageH - 8, { align: 'right' });
 
   const mt = MTYPES.find(t => t.id === selectedMtype);
   const mtName = mt ? mt.name.replace(/[/\\?*[\]:]/g, '-') : 'all';

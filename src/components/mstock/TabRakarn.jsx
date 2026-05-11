@@ -35,19 +35,19 @@ const LV7_COLS = [
   { key: 'cost',   label: 'Cost',   width: 80, align: 'right' },
 ];
 
-export default function TabRakarn({ onOpenType, onOpenBrand, onOpenMid, onOpenSubtype }) {
+export default function TabRakarn({ onOpenBrand, onOpenMid }) {
   const { selectedBranch, dateRange, selectedMid, setSelectedMid, setStatusSecond } = useAppStore();
   const [busy, setBusy] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
 
   useEffect(() => { base44.auth.me().then(u => setCurrentUser(u)).catch(() => {}); }, []);
 
-  // F3 shortcut
+  // F3 shortcut → open brand picker
   useEffect(() => {
-    const onKey = (e) => { if (e.key === 'F3') { e.preventDefault(); onOpenSubtype?.(); } };
+    const onKey = (e) => { if (e.key === 'F3') { e.preventDefault(); onOpenBrand?.(); } };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [onOpenSubtype]);
+  }, [onOpenBrand]);
 
   // ── Real API data ──────────────────────────────────────────────────────────
   const { rows: lv1Rows, loading: lv1Loading } = useLV1();
@@ -104,8 +104,8 @@ export default function TabRakarn({ onOpenType, onOpenBrand, onOpenMid, onOpenSu
     try { await fn(); } finally { setBusy(null); }
   }, [busy]);
 
-  const { selectedCompany, selectedMtype, selectedMsubtype } = useAppStore();
-  const reportCtx = { selectedBranch, dateRange, selectedMtype, selectedMsubtype, user: currentUser };
+  const { selectedCompany, selectedBrand } = useAppStore();
+  const reportCtx = { selectedBranch, dateRange, selectedBrand, user: currentUser };
 
   const handlePrint1 = () => runAsync('p1', async () => printLV1(lv1Rows, reportCtx));
   const handlePrint2 = () => runAsync('p2', async () => printLV1LV2(lv1Rows, reportCtx));
@@ -137,8 +137,7 @@ export default function TabRakarn({ onOpenType, onOpenBrand, onOpenMid, onOpenSu
 
   const noDataTip = !hasData ? 'ไม่มีข้อมูลให้พิมพ์/ส่งออก' : undefined;
   const toolbarButtons = [
-    { icon: '📑', iconKey: '📑', label: 'ชนิด',    onClick: onOpenType },
-    { icon: '🏷', iconKey: '📑', label: 'ประเภท',  onClick: onOpenSubtype },
+    { icon: '📑', iconKey: '📑', label: 'ชนิด',    onClick: onOpenBrand },
     { icon: '🖨', iconKey: '🖨', label: 'พิมพ์ 1',  onClick: handlePrint1,  disabled: !hasData || !!busy, loading: busy === 'p1', title: noDataTip },
     { icon: '🖨', iconKey: '🖨', label: 'พิมพ์ 2',  onClick: handlePrint2,  disabled: !hasData || !!busy, loading: busy === 'p2', title: noDataTip },
     { icon: '📤', iconKey: '📤', label: 'ส่งต่อ 1', onClick: handleExcel,   disabled: !hasData || !!busy, loading: busy === 'e1', title: noDataTip },

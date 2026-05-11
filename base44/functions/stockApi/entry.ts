@@ -7,24 +7,14 @@ const pools = {};
 function getPool(company) {
   const c = String(company).toUpperCase();
   if (pools[c]) return pools[c];
-
   const prefix = `DB_${c}`;
   const host     = Deno.env.get(`${prefix}_HOST`);
   const port     = parseInt(Deno.env.get(`${prefix}_PORT`) || '3306');
   const user     = Deno.env.get(`${prefix}_USER`);
   const password = Deno.env.get(`${prefix}_PASS`);
   const database = Deno.env.get(`${prefix}_NAME`);
-
-  if (!host || !user || !password || !database) {
-    throw new Error(`Missing DB credentials for company: ${c}`);
-  }
-
-  pools[c] = mysql.createPool({
-    host, port, user, password, database,
-    waitForConnections: true,
-    connectionLimit: 5,
-    connectTimeout: 10000,
-  });
+  if (!host || !user || !password || !database) throw new Error(`Missing DB credentials for company: ${c}`);
+  pools[c] = mysql.createPool({ host, port, user, password, database, waitForConnections: true, connectionLimit: 5, connectTimeout: 10000 });
   return pools[c];
 }
 
@@ -43,412 +33,440 @@ Deno.serve(async (req) => {
 
     const body = await req.json().catch(() => ({}));
     const { action, company, ...params } = body;
-
     if (!company) return Response.json({ error: 'company required' }, { status: 400 });
 
-    // ── schema (debug) ────────────────────────────────────────────────────────
-    if (action === 'schema') {
-      const mtSample      = await query(company, `SELECT * FROM mtype LIMIT 3`).catch(e => ({ err: e.message }));
-      const matSample     = await query(company, `SELECT mid, info, typeid, brand, cost, price3 FROM material LIMIT 2`).catch(e => ({ err: e.message }));
-      const scSample      = await query(company, `SELECT * FROM stockcard LIMIT 2`).catch(e => ({ err: e.message }));
-      const brSample      = await query(company, `SELECT * FROM branch LIMIT 3`).catch(e => ({ err: e.message }));
-      const brandCheck    = await query(company, `SELECT * FROM brand LIMIT 3`).catch(e => ({ err: e.message }));
-      const billnoPat     = await query(company, `SELECT DISTINCT LEFT(billno,3) as prefix, COUNT(*) as cnt FROM stockcard WHERE branchid=1 GROUP BY LEFT(billno,3) ORDER BY cnt DESC LIMIT 15`).catch(e => ({ err: e.message }));
-      const branch1Sample = await query(company, `SELECT mid, billno, stockdate, debit, credit, branchid, REF FROM stockcard WHERE branchid=1 AND (debit>0 OR credit>0) LIMIT 5`).catch(e => ({ err: e.message }));
-      return Response.json({ mtSample, matSample, scSample, brSample, brandCheck, billnoPat, branch1Sample });
-    }
-
-    // ── branches ──────────────────────────────────────────────────────────────
-    // Real schema: branch_id (int), branch_name (varchar), address
+    // ── branches — Delphi: FFindbranch, customtype + custombranch ────────────
+    // A1: SELECT DISTINCT c.id, c.customtype, COUNT(*) AS SC FROM customtype c
+    //     INNER JOIN custombranch b ON c.id = b.customtypeid
+    //     WHERE b.activestatus = ? GROUP BY customtype HAVING SC > 0
+    // A2: SELECT * FROM custombranch INNER JOIN customtype ON ...
+    //     WHERE customcode LIKE ? AND name LIKE ? AND address LIKE ?
+    //       AND activestatus = ? AND customtypeid = ?
     if (action === 'branches') {
-      const rows = await query(company, `
-        SELECT branch_id as id, branch_name as branchname, address, shop, manid
-        FROM branch
-        ORDER BY branch_id
-      `);
-      return Response.json({ rows });
+      const activeOnly = params.activeOnly !== false; // default true
+      const activeStatus = activeOnly ? 1 : 0;
+      const qCode    = params.qCode    ? `%${params.qCode}%`    : '%';
+      const qName    = params.qName    ? `%${params.qName}%`    : '%';
+      const qAddress = params.qAddress ? `${params.qAddress}%`  : '%';
+
+      // A1: get groups
+      const groups = await query(company, `
+        SELECT DISTINCT c.id AS id, c.customtype AS customtype, COUNT(*) AS SC
+        FROM customtype c
+        INNER JOIN custombranch b ON c.id = b.customtypeid
+        WHERE b.activestatus = ?
+        GROUP BY c.id, c.customtype
+        HAVING SC > 0
+        ORDER BY c.id
+      `, [activeStatus]);
+
+      // A2: for each group get branches
+      const result = [];
+      for (const g of groups) {
+        const branches = await query(company, `
+          SELECT b.customid, b.customcode, b.name, b.address, b.activestatus, b.customtypeid
+          FROM custombranch b
+          INNER JOIN customtype c ON b.customtypeid = c.id
+          WHERE b.customcode LIKE ? AND b.name LIKE ? AND b.address LIKE ?
+            AND b.activestatus = ? AND b.customtypeid = ?
+          ORDER BY b.customid
+        `, [qCode, qName, qAddress, activeStatus, g.id]);
+
+        if (branches.length > 0) {
+          result.push({ _group: true, id: g.id, customtype: g.customtype });
+          for (const b of branches) {
+            result.push({
+              id:         b.customid,
+              branchcode: b.customcode,
+              branchname: b.name,
+              address:    b.address || '',
+              typeid:     b.customtypeid,
+            });
+          }
+        }
+      }
+      return Response.json({ rows: result });
     }
 
-    // ── mtypes ────────────────────────────────────────────────────────────────
-    if (action === 'mtypes') {
-      const q = params.q || '';
-      const rows = await query(company, `
-        SELECT id, typename as name FROM mtype
-        WHERE typename LIKE ? ORDER BY orderid, id
-      `, [`%${q}%`]);
-      return Response.json({ rows });
-    }
-
-    // ── brands (ชนิดย่อย / msubtype) ─────────────────────────────────────────
-    // The 'brand' table holds sub-categories per mtype.
-    // brand.id matches material.brand
+    // ── brands — Delphi: "ชนิด" picker (brand table, not mtype) ─────────────
+    // SELECT id, brandname FROM brand WHERE brandname LIKE ? ORDER BY id
     if (action === 'brands') {
-      const q      = params.q || '';
-      const mtype  = params.mtype;
-      let sql = `SELECT id, brandname as name, typeid FROM brand WHERE brandname LIKE ?`;
-      const args = [`%${q}%`];
-      if (mtype) { sql += ` AND typeid = ?`; args.push(Number(mtype)); }
-      sql += ` ORDER BY typeid, id`;
-      const rows = await query(company, sql, args);
-      return Response.json({ rows });
-    }
-
-    // ── msubtypes — alias for brands (backward compat) ────────────────────────
-    if (action === 'msubtypes') {
       const q = params.q || '';
       const rows = await query(company, `
-        SELECT id, brandname as name, typeid FROM brand
-        WHERE brandname LIKE ? ORDER BY typeid, id
+        SELECT id, brandname AS name FROM brand
+        WHERE brandname LIKE ? ORDER BY id
       `, [`%${q}%`]);
       return Response.json({ rows });
     }
 
     // ── materials ─────────────────────────────────────────────────────────────
     if (action === 'materials') {
-      const { mtype, brand } = params;
-      let sql = `SELECT mid, info, typeid, brand, cost, price3 as sale_price FROM material WHERE cancelstatus = 0`;
+      const { brand } = params;
+      let sql = `SELECT mid, info FROM material WHERE cancelstatus = 0`;
       const args = [];
-      if (mtype) { sql += ` AND typeid = ?`; args.push(Number(mtype)); }
-      if (brand)  { sql += ` AND brand = ?`;  args.push(Number(brand)); }
+      if (brand) { sql += ` AND brand = ?`; args.push(Number(brand)); }
       sql += ` ORDER BY mid`;
       const rows = await query(company, sql, args);
       return Response.json({ rows });
     }
 
-    // ── stockcard (LV1) ───────────────────────────────────────────────────────
-    // carry = SUM(debit-credit) WHERE stockdate < date1  (carry brought forward)
-    // debit  = SUM(debit)  WHERE stockdate BETWEEN date1 AND date2
-    // credit = SUM(credit) WHERE stockdate BETWEEN date1 AND date2
+    // ── stockcard (LV1) — Delphi exact SQL ──────────────────────────────────
+    // SELECT t.brandname, a.mid, m.info,
+    //   SUM(IF(stockdate < ?, debit, 0)) carryd,
+    //   SUM(IF(stockdate < ?, credit, 0)) carryc,
+    //   SUM(IF(stockdate BETWEEN ? AND ?, credit, 0)) Credit,
+    //   SUM(IF(stockdate BETWEEN ? AND ?, debit, 0)) debit
+    // FROM stockcard a
+    // INNER JOIN material m ON a.mid = m.mid
+    // INNER JOIN brand t ON t.id = m.brand
+    // WHERE a.branchid = ? AND m.brand = ?
+    // GROUP BY mid, brandname
+    // carry = carryd - carryc ; total = (carryd-carryc) + debit - credit
     if (action === 'stockcard') {
-      const { branch, mtype, brand, from: date1, to: date2 } = params;
-      if (!branch || !date1 || !date2) return Response.json({ error: 'branch, from, to required' }, { status: 400 });
-
-      // Get matching materials
-      let matSql = `SELECT mid, info FROM material WHERE cancelstatus = 0`;
-      const matArgs = [];
-      if (mtype) { matSql += ` AND typeid = ?`; matArgs.push(Number(mtype)); }
-      if (brand)  { matSql += ` AND brand = ?`;  matArgs.push(Number(brand)); }
-      matSql += ` ORDER BY mid`;
-      const mats = await query(company, matSql, matArgs);
-      if (mats.length === 0) return Response.json({ rows: [] });
-
-      const mids = mats.map(m => m.mid);
-      const placeholders = mids.map(() => '?').join(',');
-      const branchId = Number(branch);
-
-      // carry before period
-      const carryRows = await query(company, `
-        SELECT mid, SUM(debit) - SUM(credit) as carry
-        FROM stockcard
-        WHERE branchid = ? AND mid IN (${placeholders})
-          AND DATE(stockdate) < ?
-        GROUP BY mid
-      `, [branchId, ...mids, date1]);
-      const carryMap = {};
-      for (const r of carryRows) carryMap[r.mid] = parseFloat(r.carry) || 0;
-
-      // period debit/credit
-      const periodRows = await query(company, `
-        SELECT mid, SUM(debit) as debit, SUM(credit) as credit
-        FROM stockcard
-        WHERE branchid = ? AND mid IN (${placeholders})
-          AND DATE(stockdate) >= ? AND DATE(stockdate) <= ?
-        GROUP BY mid
-      `, [branchId, ...mids, date1, date2]);
-      const periodMap = {};
-      for (const r of periodRows) periodMap[r.mid] = { debit: parseFloat(r.debit) || 0, credit: parseFloat(r.credit) || 0 };
-
-      const rows = mats.map(m => {
-        const carry  = carryMap[m.mid]  || 0;
-        const debit  = periodMap[m.mid]?.debit  || 0;
-        const credit = periodMap[m.mid]?.credit || 0;
-        return { mid: m.mid, info: m.info, carry, debit, credit, total: carry + debit - credit };
-      });
-      return Response.json({ rows });
-    }
-
-    // ── stockcard_bytype (LV3: sum per mtype) ─────────────────────────────────
-    // Returns per-mtype summary: { id, name, total, value, price(avg_cost) }
-    if (action === 'stockcard_bytype') {
-      const { branch, from: date1, to: date2 } = params;
-      if (!branch || !date1 || !date2) return Response.json({ error: 'branch, from, to required' }, { status: 400 });
-      const branchId = Number(branch);
-
-      // Get all mtypes
-      const mtypes = await query(company, `SELECT id, typename as name FROM mtype ORDER BY orderid, id`);
-
-      // carry before period per (mid)
-      const carryRows = await query(company, `
-        SELECT sc.mid, SUM(sc.debit) - SUM(sc.credit) as carry
-        FROM stockcard sc
-        WHERE sc.branchid = ? AND DATE(sc.stockdate) < ?
-        GROUP BY sc.mid
-      `, [branchId, date1]);
-      const carryMap = {};
-      for (const r of carryRows) carryMap[r.mid] = parseFloat(r.carry) || 0;
-
-      // period debit/credit per mid
-      const periodRows = await query(company, `
-        SELECT sc.mid, SUM(sc.debit) as debit, SUM(sc.credit) as credit
-        FROM stockcard sc
-        WHERE sc.branchid = ? AND DATE(sc.stockdate) >= ? AND DATE(sc.stockdate) <= ?
-        GROUP BY sc.mid
-      `, [branchId, date1, date2]);
-      const periodMap = {};
-      for (const r of periodRows) periodMap[r.mid] = { debit: parseFloat(r.debit) || 0, credit: parseFloat(r.credit) || 0 };
-
-      // Get materials with cost
-      const mats = await query(company, `SELECT mid, typeid, cost FROM material WHERE cancelstatus = 0`);
-      const matMap = {};
-      for (const m of mats) matMap[m.mid] = { typeid: m.typeid, cost: parseFloat(m.cost) || 0 };
-
-      // Aggregate per mtype
-      const typeAgg = {};
-      for (const m of mats) {
-        const carry  = carryMap[m.mid]  || 0;
-        const debit  = periodMap[m.mid]?.debit  || 0;
-        const credit = periodMap[m.mid]?.credit || 0;
-        const total  = carry + debit - credit;
-        const value  = total * (parseFloat(m.cost) || 0);
-        const tid = m.typeid;
-        if (!typeAgg[tid]) typeAgg[tid] = { total: 0, value: 0 };
-        typeAgg[tid].total += total;
-        typeAgg[tid].value += value;
-      }
-
-      let grandTotal = 0, grandValue = 0;
-      const rows = mtypes.map(mt => {
-        const agg = typeAgg[mt.id] || { total: 0, value: 0 };
-        grandTotal += agg.total;
-        grandValue += agg.value;
-        return {
-          id: String(mt.id),
-          name: mt.name,
-          total: agg.total,
-          price: agg.total > 0 ? agg.value / agg.total : 0,
-          value: agg.value,
-        };
-      });
-      rows.push({ id: '-SUM', name: '', total: grandTotal, price: grandTotal > 0 ? grandValue / grandTotal : 0, value: grandValue });
-      return Response.json({ rows });
-    }
-
-    // ── stockcard_bybrand (LV5: sum per brand) ────────────────────────────────
-    // Returns per-brand summary: { id, name, total, value, price(avg_cost) }
-    if (action === 'stockcard_bybrand') {
-      const { branch, from: date1, to: date2 } = params;
-      if (!branch || !date1 || !date2) return Response.json({ error: 'branch, from, to required' }, { status: 400 });
-      const branchId = Number(branch);
-
-      // Get all brands
-      const brands = await query(company, `SELECT id, brandname as name, typeid FROM brand ORDER BY typeid, id`);
-
-      // carry per mid
-      const carryRows = await query(company, `
-        SELECT mid, SUM(debit) - SUM(credit) as carry
-        FROM stockcard
-        WHERE branchid = ? AND DATE(stockdate) < ?
-        GROUP BY mid
-      `, [branchId, date1]);
-      const carryMap = {};
-      for (const r of carryRows) carryMap[r.mid] = parseFloat(r.carry) || 0;
-
-      // period per mid
-      const periodRows = await query(company, `
-        SELECT mid, SUM(debit) as debit, SUM(credit) as credit
-        FROM stockcard
-        WHERE branchid = ? AND DATE(stockdate) >= ? AND DATE(stockdate) <= ?
-        GROUP BY mid
-      `, [branchId, date1, date2]);
-      const periodMap = {};
-      for (const r of periodRows) periodMap[r.mid] = { debit: parseFloat(r.debit) || 0, credit: parseFloat(r.credit) || 0 };
-
-      // materials
-      const mats = await query(company, `SELECT mid, brand, cost FROM material WHERE cancelstatus = 0`);
-
-      // Aggregate per brand
-      const brandAgg = {};
-      for (const m of mats) {
-        const carry  = carryMap[m.mid]  || 0;
-        const debit  = periodMap[m.mid]?.debit  || 0;
-        const credit = periodMap[m.mid]?.credit || 0;
-        const total  = carry + debit - credit;
-        const value  = total * (parseFloat(m.cost) || 0);
-        const bid = m.brand;
-        if (!brandAgg[bid]) brandAgg[bid] = { total: 0, value: 0 };
-        brandAgg[bid].total += total;
-        brandAgg[bid].value += value;
-      }
-
-      let grandTotal = 0, grandValue = 0;
-      const rows = brands.map(br => {
-        const agg = brandAgg[br.id] || { total: 0, value: 0 };
-        grandTotal += agg.total;
-        grandValue += agg.value;
-        return {
-          id: String(br.id),
-          name: br.name,
-          total: agg.total,
-          price: agg.total > 0 ? agg.value / agg.total : 0,
-          value: agg.value,
-        };
-      });
-      rows.push({ id: '-SUM', name: '', total: grandTotal, price: grandTotal > 0 ? grandValue / grandTotal : 0, value: grandValue });
-      return Response.json({ rows });
-    }
-
-    // ── stockcard_bymid_type (LV4: materials for one mtype) ──────────────────
-    if (action === 'stockcard_bymid_type') {
-      const { branch, mtype, from: date1, to: date2 } = params;
-      if (!branch || !mtype || !date1 || !date2) return Response.json({ error: 'branch, mtype, from, to required' }, { status: 400 });
-      const branchId = Number(branch);
-
-      const mats = await query(company, `SELECT mid, info, cost FROM material WHERE cancelstatus = 0 AND typeid = ? ORDER BY mid`, [Number(mtype)]);
-      if (mats.length === 0) return Response.json({ rows: [] });
-      const mids = mats.map(m => m.mid);
-      const placeholders = mids.map(() => '?').join(',');
-
-      const carryRows = await query(company, `SELECT mid, SUM(debit)-SUM(credit) as carry FROM stockcard WHERE branchid=? AND mid IN (${placeholders}) AND DATE(stockdate)<? GROUP BY mid`, [branchId, ...mids, date1]);
-      const carryMap = {};
-      for (const r of carryRows) carryMap[r.mid] = parseFloat(r.carry) || 0;
-
-      const periodRows = await query(company, `SELECT mid, SUM(debit) as debit, SUM(credit) as credit FROM stockcard WHERE branchid=? AND mid IN (${placeholders}) AND DATE(stockdate)>=? AND DATE(stockdate)<=? GROUP BY mid`, [branchId, ...mids, date1, date2]);
-      const periodMap = {};
-      for (const r of periodRows) periodMap[r.mid] = { debit: parseFloat(r.debit) || 0, credit: parseFloat(r.credit) || 0 };
-
-      const rows = mats.map(m => {
-        const carry  = carryMap[m.mid]  || 0;
-        const debit  = periodMap[m.mid]?.debit  || 0;
-        const credit = periodMap[m.mid]?.credit || 0;
-        const total  = carry + debit - credit;
-        const cost   = parseFloat(m.cost) || 0;
-        return { mid: m.mid, info: m.info, total, price: cost, value: total * cost };
-      });
-      return Response.json({ rows });
-    }
-
-    // ── stockcard_bymid_brand (LV6: materials for one brand) ─────────────────
-    if (action === 'stockcard_bymid_brand') {
       const { branch, brand, from: date1, to: date2 } = params;
       if (!branch || !brand || !date1 || !date2) return Response.json({ error: 'branch, brand, from, to required' }, { status: 400 });
-      const branchId = Number(branch);
 
-      const mats = await query(company, `SELECT mid, info, cost FROM material WHERE cancelstatus = 0 AND brand = ? ORDER BY mid`, [Number(brand)]);
-      if (mats.length === 0) return Response.json({ rows: [] });
-      const mids = mats.map(m => m.mid);
-      const placeholders = mids.map(() => '?').join(',');
+      const d1     = date1;           // "YYYY-MM-DD"
+      const d1time = `${date1} 00:00:00`;
+      const d2time = `${date2} 23:59:59`;
 
-      const carryRows = await query(company, `SELECT mid, SUM(debit)-SUM(credit) as carry FROM stockcard WHERE branchid=? AND mid IN (${placeholders}) AND DATE(stockdate)<? GROUP BY mid`, [branchId, ...mids, date1]);
-      const carryMap = {};
-      for (const r of carryRows) carryMap[r.mid] = parseFloat(r.carry) || 0;
+      const rows = await query(company, `
+        SELECT
+          t.brandname,
+          a.mid,
+          m.info,
+          SUM(IF(a.stockdate < ?, a.debit,  0)) AS carryd,
+          SUM(IF(a.stockdate < ?, a.credit, 0)) AS carryc,
+          SUM(IF(a.stockdate BETWEEN ? AND ?, a.credit, 0)) AS credit,
+          SUM(IF(a.stockdate BETWEEN ? AND ?, a.debit,  0)) AS debit
+        FROM stockcard a
+        INNER JOIN material m ON a.mid = m.mid
+        INNER JOIN brand t ON t.id = m.brand
+        WHERE a.branchid = ? AND m.brand = ?
+        GROUP BY a.mid, t.brandname
+        ORDER BY a.mid
+      `, [d1time, d1time, d1time, d2time, d1time, d2time, Number(branch), Number(brand)]);
 
-      const periodRows = await query(company, `SELECT mid, SUM(debit) as debit, SUM(credit) as credit FROM stockcard WHERE branchid=? AND mid IN (${placeholders}) AND DATE(stockdate)>=? AND DATE(stockdate)<=? GROUP BY mid`, [branchId, ...mids, date1, date2]);
-      const periodMap = {};
-      for (const r of periodRows) periodMap[r.mid] = { debit: parseFloat(r.debit) || 0, credit: parseFloat(r.credit) || 0 };
-
-      const rows = mats.map(m => {
-        const carry  = carryMap[m.mid]  || 0;
-        const debit  = periodMap[m.mid]?.debit  || 0;
-        const credit = periodMap[m.mid]?.credit || 0;
+      const result = rows.map(r => {
+        const carryd = parseFloat(r.carryd)  || 0;
+        const carryc = parseFloat(r.carryc)  || 0;
+        const debit  = parseFloat(r.debit)   || 0;
+        const credit = parseFloat(r.credit)  || 0;
+        const carry  = carryd - carryc;
         const total  = carry + debit - credit;
-        const cost   = parseFloat(m.cost) || 0;
-        return { mid: m.mid, info: m.info, total, price: cost, value: total * cost };
+        return { mid: r.mid, info: r.info, carry, debit, credit, total };
       });
-      return Response.json({ rows });
+      return Response.json({ rows: result });
     }
 
-    // ── movements (LV2) ───────────────────────────────────────────────────────
-    // Real billno format: OS16260..., CT16260..., AP16260..., CA (carry-adj), etc.
-    // Derive doctype from billno prefix (2-char alpha prefix)
+    // ── movements (LV2) — Delphi exact SQL ──────────────────────────────────
+    // SELECT SUBSTRING(billno,1,2) AS Abill, billno, stockdate, debit AS DR, credit AS CR, T
+    // FROM stockcard a INNER JOIN material m ON a.mid=m.mid INNER JOIN mtype t ON t.id=m.typeid
+    // WHERE a.stockdate BETWEEN ? AND ? AND a.branchid=? AND a.mid=?
+    // ORDER BY Abill, stockdate
     if (action === 'movements') {
       const { branch, mid, from: date1, to: date2 } = params;
       if (!branch || !mid || !date1 || !date2) return Response.json({ error: 'branch, mid, from, to required' }, { status: 400 });
 
+      const d1time = `${date1} 00:00:00`;
+      const d2time = `${date2} 23:59:59`;
+
       const rows = await query(company, `
         SELECT
-          billno,
-          stockdate as adate,
-          debit,
-          credit,
-          REF as refinfo,
-          cost,
-          CASE
-            WHEN billno LIKE 'AP%' THEN 'AP'
-            WHEN billno LIKE 'CT%' THEN 'CT'
-            WHEN billno LIKE 'OS%' THEN 'OS'
-            WHEN billno LIKE 'CR%' THEN 'CR'
-            WHEN billno LIKE 'WS%' THEN 'WS'
-            WHEN billno LIKE 'PR%' THEN 'PR'
-            WHEN billno LIKE 'CA%' THEN 'CA'
-            WHEN billno LIKE 'TR%' THEN 'TR'
-            ELSE LEFT(TRIM(billno), 2)
-          END as doctype
-        FROM stockcard
-        WHERE branchid = ? AND mid = ?
-          AND DATE(stockdate) >= ? AND DATE(stockdate) <= ?
-        ORDER BY
-          CASE
-            WHEN billno LIKE 'AP%' THEN 1
-            WHEN billno LIKE 'CT%' THEN 2
-            WHEN billno LIKE 'OS%' THEN 3
-            WHEN billno LIKE 'CR%' THEN 4
-            WHEN billno LIKE 'WS%' THEN 5
-            WHEN billno LIKE 'PR%' THEN 6
-            WHEN billno LIKE 'CA%' THEN 7
-            WHEN billno LIKE 'TR%' THEN 8
-            ELSE 9
-          END,
-          stockdate
-      `, [Number(branch), mid, date1, date2]);
+          SUBSTRING(a.billno, 1, 2) AS abill,
+          a.billno,
+          a.stockdate,
+          a.debit,
+          a.credit,
+          a.REF AS T
+        FROM stockcard a
+        INNER JOIN material m ON a.mid = m.mid
+        INNER JOIN mtype t ON t.id = m.typeid
+        WHERE a.stockdate BETWEEN ? AND ?
+          AND a.branchid = ?
+          AND a.mid = ?
+        ORDER BY abill, a.stockdate
+      `, [d1time, d2time, Number(branch), mid]);
 
       return Response.json({ rows });
     }
 
-    // ── lots (LV7) ────────────────────────────────────────────────────────────
-    // "Lots" = CT (incoming) rows ordered newest→oldest.
-    // If no CT rows, fallback to any debit rows (CA carry entries etc.)
+    // ── lots (LV7 FIFO) — Delphi exact SQL ──────────────────────────────────
+    // Uses POS.material_{branchcode} for bal + price3
+    // Falls back to material.bal if POS schema unavailable
     if (action === 'lots') {
-      const { branch, mid } = params;
+      const { branch, mid, branchcode } = params;
       if (!branch || !mid) return Response.json({ error: 'branch, mid required' }, { status: 400 });
 
-      // Try CT prefix first
-      let rows = await query(company, `
-        SELECT billno, stockdate as adate, debit, credit, cost
-        FROM stockcard
-        WHERE branchid = ? AND mid = ?
-          AND billno LIKE 'CT%'
-          AND debit > 0
-        ORDER BY stockdate DESC
-        LIMIT 20
-      `, [Number(branch), mid]);
+      // Get salePrice + bal from material (fallback if POS unavailable)
+      const matRow = await query(company, `SELECT price3, bal FROM material WHERE mid = ? LIMIT 1`, [mid]);
+      const salePrice = parseFloat(matRow[0]?.price3) || 0;
+      const bal       = parseFloat(matRow[0]?.bal)    || 0;
 
-      // Fallback: any debit rows if no CT found
-      if (rows.length === 0) {
-        rows = await query(company, `
-          SELECT billno, stockdate as adate, debit, credit, cost
-          FROM stockcard
-          WHERE branchid = ? AND mid = ?
-            AND debit > 0
-          ORDER BY stockdate DESC
-          LIMIT 20
-        `, [Number(branch), mid]);
+      // Try POS.material_{branchcode} for accurate bal + price3
+      let posBal = bal;
+      let posPrice = salePrice;
+      if (branchcode) {
+        const posTable = `POS.material_${branchcode}`;
+        try {
+          const posRows = await query(company, `SELECT bal, price3 FROM ${posTable} WHERE mid = ? LIMIT 1`, [mid]);
+          if (posRows[0]) {
+            posBal   = parseFloat(posRows[0].bal)    || bal;
+            posPrice = parseFloat(posRows[0].price3) || salePrice;
+          }
+        } catch (_) { /* POS schema not accessible, use fallback */ }
       }
 
-      // sale_price from material
-      const matRows = await query(company, `SELECT price3 FROM material WHERE mid = ? LIMIT 1`, [mid]);
-      const salePrice = parseFloat(matRows[0]?.price3) || 0;
+      // Delphi FIFO lot query (window functions)
+      // SELECT t.*, t.bal-sumdebit AS valueleft,
+      //   CASE WHEN t.bal-sumdebit > 0 THEN t.debit
+      //        ELSE t.bal-(sumdebit-t.debit) END AS stockcalc
+      // FROM (
+      //   SELECT s.id, m.mid, s.billno, s.stockdate, s.cost, m.bal, s.debit,
+      //     SUM(s.debit) OVER (ORDER BY s.id DESC) AS sumdebit,
+      //     ROW_NUMBER() OVER (ORDER BY s.id DESC) AS lotid
+      //   FROM material m INNER JOIN stockcard s ON m.mid=s.mid
+      //   WHERE s.debit > 0 AND s.branchid=? AND SUBSTR(billno,1,2)<>'CA' AND s.mid=?
+      //   ORDER BY s.id DESC
+      // ) AS t
+      // WHERE t.bal-(sumdebit-t.debit) > 0
+      let lots = [];
+      try {
+        const lotRows = await query(company, `
+          SELECT t.id, t.mid, t.billno, t.stockdate, t.cost, t.bal, t.debit,
+                 t.bal - t.sumdebit AS valueleft,
+                 CASE WHEN t.bal - t.sumdebit > 0
+                      THEN t.debit
+                      ELSE t.bal - (t.sumdebit - t.debit)
+                 END AS stockcalc,
+                 t.lotid
+          FROM (
+            SELECT s.id, m.mid, s.billno, s.stockdate, s.cost, ? AS bal, s.debit,
+                   SUM(s.debit) OVER (ORDER BY s.id DESC) AS sumdebit,
+                   ROW_NUMBER() OVER (ORDER BY s.id DESC) AS lotid
+            FROM material m
+            INNER JOIN stockcard s ON m.mid = s.mid
+            WHERE s.debit > 0 AND s.branchid = ?
+              AND SUBSTR(s.billno, 1, 2) <> 'CA'
+              AND s.mid = ?
+          ) AS t
+          WHERE t.bal - (t.sumdebit - t.debit) > 0
+          ORDER BY t.lotid
+        `, [posBal, Number(branch), mid]);
 
-      // running calc (remaining in each lot) — approximate from debit
-      const lots = rows.map((r, i) => ({
-        lotid:  i + 1,
-        billno: r.billno,
-        adate:  r.adate,
-        debit:  parseFloat(r.debit)  || 0,
-        calc:   parseFloat(r.debit)  || 0,
-        cost:   parseFloat(r.cost)   || 0,
-      }));
+        lots = lotRows.map(r => ({
+          lotid:  Number(r.lotid),
+          billno: r.billno,
+          adate:  r.stockdate,
+          debit:  parseFloat(r.debit)      || 0,
+          calc:   parseFloat(r.stockcalc)  || 0,
+          cost:   parseFloat(r.cost)       || 0,
+        }));
+      } catch (e) {
+        // Fallback: simple debit rows if window functions unavailable
+        console.error('lots FIFO error:', e.message);
+        const fallback = await query(company, `
+          SELECT billno, stockdate, debit, cost FROM stockcard
+          WHERE branchid = ? AND mid = ? AND debit > 0
+            AND SUBSTR(billno, 1, 2) <> 'CA'
+          ORDER BY id DESC LIMIT 20
+        `, [Number(branch), mid]);
+        lots = fallback.map((r, i) => ({
+          lotid:  i + 1,
+          billno: r.billno,
+          adate:  r.stockdate,
+          debit:  parseFloat(r.debit) || 0,
+          calc:   parseFloat(r.debit) || 0,
+          cost:   parseFloat(r.cost)  || 0,
+        }));
+      }
 
-      return Response.json({ lots, salePrice });
+      return Response.json({ lots, salePrice: posPrice });
+    }
+
+    // ── stockcard_bytype (LV3: sum per mtype) — unchanged ────────────────────
+    if (action === 'stockcard_bytype') {
+      const { branch, from: date1, to: date2 } = params;
+      if (!branch || !date1 || !date2) return Response.json({ error: 'branch, from, to required' }, { status: 400 });
+      const branchId = Number(branch);
+      const d1time = `${date1} 00:00:00`;
+      const d2time = `${date2} 23:59:59`;
+
+      const mtypes = await query(company, `SELECT id, typename AS name FROM mtype ORDER BY orderid, id`);
+
+      const rows = await query(company, `
+        SELECT m.typeid,
+          SUM(IF(a.stockdate < ?, a.debit,  0)) - SUM(IF(a.stockdate < ?, a.credit, 0)) AS carry,
+          SUM(IF(a.stockdate BETWEEN ? AND ?, a.debit,  0)) AS debit,
+          SUM(IF(a.stockdate BETWEEN ? AND ?, a.credit, 0)) AS credit,
+          SUM(m.cost * (
+            SUM(IF(a.stockdate < ?, a.debit,0)) - SUM(IF(a.stockdate < ?, a.credit,0))
+            + SUM(IF(a.stockdate BETWEEN ? AND ?, a.debit,0))
+            - SUM(IF(a.stockdate BETWEEN ? AND ?, a.credit,0))
+          )) AS value_num
+        FROM stockcard a
+        INNER JOIN material m ON a.mid = m.mid
+        WHERE a.branchid = ?
+        GROUP BY m.typeid
+      `, [d1time, d1time, d1time, d2time, d1time, d2time,
+          d1time, d1time, d1time, d2time, d1time, d2time,
+          branchId]).catch(async () => {
+        // Simpler fallback
+        return query(company, `
+          SELECT m.typeid,
+            SUM(CASE WHEN DATE(a.stockdate) < ? THEN a.debit - a.credit ELSE 0 END) AS carry,
+            SUM(CASE WHEN DATE(a.stockdate) >= ? AND DATE(a.stockdate) <= ? THEN a.debit ELSE 0 END) AS debit,
+            SUM(CASE WHEN DATE(a.stockdate) >= ? AND DATE(a.stockdate) <= ? THEN a.credit ELSE 0 END) AS credit
+          FROM stockcard a INNER JOIN material m ON a.mid = m.mid
+          WHERE a.branchid = ? GROUP BY m.typeid
+        `, [date1, date1, date2, date1, date2, branchId]);
+      });
+
+      // Build per-mtype map
+      const typeMap = {};
+      for (const r of rows) {
+        const carry  = parseFloat(r.carry)  || 0;
+        const debit  = parseFloat(r.debit)  || 0;
+        const credit = parseFloat(r.credit) || 0;
+        typeMap[r.typeid] = { total: carry + debit - credit };
+      }
+
+      // Get avg cost per type from material
+      const matCosts = await query(company, `SELECT typeid, AVG(cost) AS avgcost FROM material WHERE cancelstatus=0 GROUP BY typeid`);
+      const costMap = {};
+      for (const r of matCosts) costMap[r.typeid] = parseFloat(r.avgcost) || 0;
+
+      let grandTotal = 0, grandValue = 0;
+      const result = mtypes.map(mt => {
+        const agg = typeMap[mt.id] || { total: 0 };
+        const price = costMap[mt.id] || 0;
+        const value = agg.total * price;
+        grandTotal += agg.total;
+        grandValue += value;
+        return { id: String(mt.id), name: mt.name, total: agg.total, price, value };
+      });
+      result.push({ id: '-SUM', name: '', total: grandTotal, price: grandTotal > 0 ? grandValue / grandTotal : 0, value: grandValue });
+      return Response.json({ rows: result });
+    }
+
+    // ── stockcard_bybrand (LV5: sum per brand) ────────────────────────────────
+    if (action === 'stockcard_bybrand') {
+      const { branch, from: date1, to: date2 } = params;
+      if (!branch || !date1 || !date2) return Response.json({ error: 'branch, from, to required' }, { status: 400 });
+      const branchId = Number(branch);
+      const d1time = `${date1} 00:00:00`;
+      const d2time = `${date2} 23:59:59`;
+
+      const brands = await query(company, `SELECT id, brandname AS name FROM brand ORDER BY id`);
+
+      const rows = await query(company, `
+        SELECT m.brand,
+          SUM(CASE WHEN a.stockdate < ? THEN a.debit - a.credit ELSE 0 END) AS carry,
+          SUM(CASE WHEN a.stockdate BETWEEN ? AND ? THEN a.debit  ELSE 0 END) AS debit,
+          SUM(CASE WHEN a.stockdate BETWEEN ? AND ? THEN a.credit ELSE 0 END) AS credit
+        FROM stockcard a
+        INNER JOIN material m ON a.mid = m.mid
+        WHERE a.branchid = ?
+        GROUP BY m.brand
+      `, [d1time, d1time, d2time, d1time, d2time, branchId]);
+
+      const brandMap = {};
+      for (const r of rows) {
+        const carry  = parseFloat(r.carry)  || 0;
+        const debit  = parseFloat(r.debit)  || 0;
+        const credit = parseFloat(r.credit) || 0;
+        brandMap[r.brand] = { total: carry + debit - credit };
+      }
+
+      const matCosts = await query(company, `SELECT brand, AVG(cost) AS avgcost FROM material WHERE cancelstatus=0 GROUP BY brand`);
+      const costMap = {};
+      for (const r of matCosts) costMap[r.brand] = parseFloat(r.avgcost) || 0;
+
+      let grandTotal = 0, grandValue = 0;
+      const result = brands.map(br => {
+        const agg = brandMap[br.id] || { total: 0 };
+        const price = costMap[br.id] || 0;
+        const value = agg.total * price;
+        grandTotal += agg.total;
+        grandValue += value;
+        return { id: String(br.id), name: br.name, total: agg.total, price, value };
+      });
+      result.push({ id: '-SUM', name: '', total: grandTotal, price: grandTotal > 0 ? grandValue / grandTotal : 0, value: grandValue });
+      return Response.json({ rows: result });
+    }
+
+    // ── stockcard_bymid_type (LV4) ────────────────────────────────────────────
+    if (action === 'stockcard_bymid_type') {
+      const { branch, mtype, from: date1, to: date2 } = params;
+      if (!branch || !mtype || !date1 || !date2) return Response.json({ error: 'branch, mtype, from, to required' }, { status: 400 });
+      const branchId = Number(branch);
+      const d1time = `${date1} 00:00:00`;
+      const d2time = `${date2} 23:59:59`;
+
+      const rows = await query(company, `
+        SELECT a.mid, m.info, m.cost,
+          SUM(CASE WHEN a.stockdate < ? THEN a.debit - a.credit ELSE 0 END) AS carry,
+          SUM(CASE WHEN a.stockdate BETWEEN ? AND ? THEN a.debit  ELSE 0 END) AS debit,
+          SUM(CASE WHEN a.stockdate BETWEEN ? AND ? THEN a.credit ELSE 0 END) AS credit
+        FROM stockcard a
+        INNER JOIN material m ON a.mid = m.mid
+        WHERE a.branchid = ? AND m.typeid = ? AND m.cancelstatus = 0
+        GROUP BY a.mid, m.info, m.cost
+        ORDER BY a.mid
+      `, [d1time, d1time, d2time, d1time, d2time, branchId, Number(mtype)]);
+
+      const result = rows.map(r => {
+        const carry  = parseFloat(r.carry)  || 0;
+        const debit  = parseFloat(r.debit)  || 0;
+        const credit = parseFloat(r.credit) || 0;
+        const total  = carry + debit - credit;
+        const cost   = parseFloat(r.cost)   || 0;
+        return { mid: r.mid, info: r.info, total, price: cost, value: total * cost };
+      });
+      return Response.json({ rows: result });
+    }
+
+    // ── stockcard_bymid_brand (LV6) ───────────────────────────────────────────
+    if (action === 'stockcard_bymid_brand') {
+      const { branch, brand, from: date1, to: date2 } = params;
+      if (!branch || !brand || !date1 || !date2) return Response.json({ error: 'branch, brand, from, to required' }, { status: 400 });
+      const branchId = Number(branch);
+      const d1time = `${date1} 00:00:00`;
+      const d2time = `${date2} 23:59:59`;
+
+      const rows = await query(company, `
+        SELECT a.mid, m.info, m.cost,
+          SUM(CASE WHEN a.stockdate < ? THEN a.debit - a.credit ELSE 0 END) AS carry,
+          SUM(CASE WHEN a.stockdate BETWEEN ? AND ? THEN a.debit  ELSE 0 END) AS debit,
+          SUM(CASE WHEN a.stockdate BETWEEN ? AND ? THEN a.credit ELSE 0 END) AS credit
+        FROM stockcard a
+        INNER JOIN material m ON a.mid = m.mid
+        WHERE a.branchid = ? AND m.brand = ? AND m.cancelstatus = 0
+        GROUP BY a.mid, m.info, m.cost
+        ORDER BY a.mid
+      `, [d1time, d1time, d2time, d1time, d2time, branchId, Number(brand)]);
+
+      const result = rows.map(r => {
+        const carry  = parseFloat(r.carry)  || 0;
+        const debit  = parseFloat(r.debit)  || 0;
+        const credit = parseFloat(r.credit) || 0;
+        const total  = carry + debit - credit;
+        const cost   = parseFloat(r.cost)   || 0;
+        return { mid: r.mid, info: r.info, total, price: cost, value: total * cost };
+      });
+      return Response.json({ rows: result });
+    }
+
+    // ── schema (debug) ────────────────────────────────────────────────────────
+    if (action === 'schema') {
+      const custombranch  = await query(company, `SELECT customid, customcode, name, activestatus, customtypeid FROM custombranch LIMIT 5`).catch(e => ({ err: e.message }));
+      const customtype    = await query(company, `SELECT * FROM customtype LIMIT 5`).catch(e => ({ err: e.message }));
+      const brandSample   = await query(company, `SELECT id, brandname FROM brand LIMIT 5`).catch(e => ({ err: e.message }));
+      const matSample     = await query(company, `SELECT mid, info, typeid, brand, cost, price3, bal FROM material LIMIT 3`).catch(e => ({ err: e.message }));
+      const scBranchIds   = await query(company, `SELECT DISTINCT branchid, COUNT(*) as cnt FROM stockcard GROUP BY branchid ORDER BY cnt DESC LIMIT 10`).catch(e => ({ err: e.message }));
+      const scSample      = await query(company, `SELECT mid, billno, stockdate, debit, credit, branchid FROM stockcard WHERE debit > 0 LIMIT 5`).catch(e => ({ err: e.message }));
+      const brand101mids  = await query(company, `SELECT mid, info FROM material WHERE brand=101 LIMIT 5`).catch(e => ({ err: e.message }));
+      return Response.json({ custombranch, customtype, brandSample, matSample, scBranchIds, scSample, brand101mids });
     }
 
     return Response.json({ error: 'Unknown action' }, { status: 400 });

@@ -10,7 +10,7 @@ const COLS = [
 ];
 
 export default function ModalMidPicker({ onClose }) {
-  const { selectedCompany, selectedMtype, selectedBrand, setSelectedMid } = useAppStore();
+  const { selectedCompany, selectedBrand, setSelectedMid } = useAppStore();
   const [allRows, setAllRows] = useState([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch]   = useState('');
@@ -18,11 +18,11 @@ export default function ModalMidPicker({ onClose }) {
 
   useEffect(() => {
     setLoading(true);
-    api.materials(selectedCompany, selectedMtype || undefined, selectedBrand || undefined)
+    api.materials(selectedCompany, selectedBrand || undefined)
       .then(d => setAllRows(d.rows || []))
       .catch(e => toast.error('โหลดรหัสสินค้าล้มเหลว: ' + e.message))
       .finally(() => setLoading(false));
-  }, [selectedCompany, selectedMtype, selectedBrand]);
+  }, [selectedCompany, selectedBrand]);
 
   const filtered = useMemo(() => {
     if (!search) return allRows;

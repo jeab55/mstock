@@ -1,4 +1,23 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import mysql from 'npm:mysql2@3.11.3/promise';
+
+function getPool(company) {
+  const c = String(company).toUpperCase();
+  const prefix = `DB_${c}`;
+  const host     = Deno.env.get(`${prefix}_HOST`);
+  const port     = parseInt(Deno.env.get(`${prefix}_PORT`) || '3306');
+  const user     = Deno.env.get(`${prefix}_USER`);
+  const password = Deno.env.get(`${prefix}_PASS`);
+  const database = Deno.env.get(`${prefix}_NAME`);
+  if (!host || !user || !password || !database) throw new Error(`Missing DB credentials for company: ${c}`);
+  return mysql.createPool({ host, port, user, password, database, waitForConnections: true, connectionLimit: 5, connectTimeout: 10000 });
+}
+
+async function query(company, sql, params = []) {
+  const pool = getPool(company);
+  const [rows] = await pool.execute(sql, params);
+  return rows;
+}
 
 Deno.serve(async (req) => {
   try {
@@ -10,22 +29,15 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'company and description required' }, { status: 400 });
     }
 
-    // Use LLM to search for products matching the description
-    const result = await base44.integrations.Core.InvokeLLM({
-      prompt: `คุณเป็นผู้ช่วยค้นหาสินค้าในระบบคลังสินค้า
-      
-ผู้ใช้พิมพ์: "${description}"
-
-ให้ค้นหารหัสสินค้า (mid) ที่เกี่ยวข้องกับคำนี้ แล้วส่งออกมาเป็นรหัสเท่านั้น
-ถ้าเป็นไก่ ให้ค้นรหัสที่เกี่ยวกับไก่
-ถ้าเป็นผัก ให้ค้นรหัสที่เกี่ยวกับผัก
-ถ้าเป็น "ผักกินกับน้ำพริก" ให้ค้นรหัสผักหลายชนิดที่เกี่ยวข้อง
-
-ส่งออกเป็น JSON: {"mids": ["101008", "101115", "101116"]}`,
+    // ใช้ AI แปลคำบรรยายเป็นคำค้นหา (คำหลัก)
+    const keywords = await base44.integrations.Core.InvokeLLM({
+      prompt: `แปลคำบรรยายสินค้า "${description}" เป็นคำค้นหาหลักๆ ที่ใช้ค้นในฐานข้อมูล
+เช่น: "ผักกินกับน้ำพริก" → "ผัก, มะเขือ, แตง, กะเพรา, บุ้งไทย"
+ส่งเป็น JSON: {"keywords": ["ผัก", "มะเขือ", "แตง"]}`,
       response_json_schema: {
         type: "object",
         properties: {
-          mids: {
+          keywords: {
             type: "array",
             items: { type: "string" }
           }
@@ -33,7 +45,25 @@ Deno.serve(async (req) => {
       }
     });
 
-    return Response.json({ mids: result.mids || [] });
+    const searchTerms = keywords.keywords || [description];
+    
+    // ค้นหาจากฐานข้อมูล: material.info หรือ material.mid ที่ตรงกับคำค้นหา
+    let allMids = [];
+    for (const term of searchTerms) {
+      const q = `%${term}%`;
+      const rows = await query(company, `
+        SELECT DISTINCT mid FROM material 
+        WHERE (info LIKE ? OR mid LIKE ?) 
+          AND cancelstatus = 0
+        LIMIT 20
+      `, [q, q]);
+      allMids = allMids.concat(rows.map(r => r.mid));
+    }
+
+    // ลบซ้ำ และ จำกัด max 50 รายการ
+    const uniqueMids = [...new Set(allMids)].slice(0, 50);
+    
+    return Response.json({ mids: uniqueMids });
   } catch (error) {
     console.error('searchProductByDescription error:', error.message);
     return Response.json({ error: error.message }, { status: 500 });

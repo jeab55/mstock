@@ -10,7 +10,9 @@ import StatusBar from '../components/mstock/StatusBar';
 import ModalPicker from '../components/mstock/ModalPicker';
 import ModalFindType from '../components/mstock/ModalFindType';
 import ModalFindSubtype from '../components/mstock/ModalFindSubtype';
+import ModalFindBranch from '../components/mstock/ModalFindBranch';
 import { useAppStore } from '../store/appStore';
+import { useEffect } from 'react';
 import { BRANCHES, MTYPES, BRANDS, MATERIALS } from '../data/mockData';
 
 // Flatten branches for modal
@@ -47,6 +49,13 @@ export default function StockDetail() {
   const branchRows = useMemo(() => flattenBranches(), []);
   const midRows    = useMemo(() => MATERIALS.map(m => ({ mid: m.mid, info: m.info })), []);
 
+  // F8 shortcut → open branch modal
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'F8') { e.preventDefault(); setModalOpen('branch'); } };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [setModalOpen]);
+
   return (
     <div className="h-screen flex flex-col overflow-hidden" style={{ fontFamily: 'var(--font-tahoma)' }}>
       <Header />
@@ -64,14 +73,7 @@ export default function StockDetail() {
 
       {/* Modals */}
       {modalOpen === 'branch' && (
-        <ModalPicker
-          title="FFindbranch"
-          columns={BRANCH_COLS}
-          rows={branchRows}
-          searchKey="name"
-          onSelect={(row) => { setBranch(row); setModalOpen(null); }}
-          onClose={() => setModalOpen(null)}
-        />
+        <ModalFindBranch onClose={() => setModalOpen(null)} />
       )}
       {modalOpen === 'type' && (
         <ModalFindType onClose={() => setModalOpen(null)} />

@@ -1,3 +1,53 @@
+// ===== BRANCHES FULL (for ModalFindBranch) =====
+export const BRANCHES_FULL = [
+  { section: "Backoffice", items: [
+    { rowid: 10, id: "0000", name: "สำนักงานใหญ่",         address: "เลขที่ 319/1-2 หมู่ที่ 13 ตำบลศิลา อำเภอเมืองขอนแก่น จังหวัดขอนแก่น" },
+    { rowid: 16, id: "100",  name: "ควบคุมมาตรฐาน",        address: "" },
+    { rowid: 20, id: "B020", name: "ฝ่ายบริการสินค้า",     address: "" },
+    { rowid: 21, id: "B021", name: "ฝ่ายบัญชีและการเงิน",  address: "" },
+    { rowid: 22, id: "B022", name: "ฝ่ายบุคคล",             address: "" },
+    { rowid: 23, id: "B023", name: "ฝ่ายพัฒนาธุรกิจ",      address: "" },
+    { rowid: 24, id: "B024", name: "บริการร้านค้า",          address: "" },
+    { rowid: 25, id: "B025", name: "สายงานบริการกลาง",       address: "" },
+    { rowid: 29, id: "7778", name: "ฝ่ายไอทีซัพพอร์ต",      address: "" },
+    { rowid: 39, id: "B038", name: "บริการสินค้า2",          address: "" },
+    { rowid: 40, id: "B040", name: "บริการสินค้า3",          address: "" },
+    { rowid: 41, id: "B041", name: "บริการสินค้า4",          address: "" },
+    { rowid: 42, id: "B042", name: "บริการสินค้า5",          address: "" },
+    { rowid: 62, id: "B046", name: "บริการสินค้าหมูสด 2",    address: "" },
+    { rowid: 65, id: "B065", name: "บริการสินค้า6",          address: "" },
+  ]},
+  { section: "ร้านค้า", items: [
+    { rowid: 2,  id: "0002", name: "สาขาปตท.บ้านไผ่",               address: "" },
+    { rowid: 4,  id: "0003", name: "สาขาปตท.บ้านกอก test",          address: "" },
+    { rowid: 5,  id: "0001", name: "สาขาบ้านทุ่ม",                  address: "" },
+    { rowid: 7,  id: "0007", name: "สาขาตลาดสดสำราญ",               address: "" },
+    { rowid: 17, id: "0011", name: "สาขาหลังมหาวิทยาลัยขอนแก่น",    address: "" },
+    { rowid: 32, id: "0016", name: "สาขาปตท.พระลับ",                address: "" },
+    { rowid: 33, id: "0017", name: "สาขาถ.แจ้งสนิทบ้านไผ่",         address: "" },
+    { rowid: 36, id: "9999", name: "สาขาหมูเป็ด",                   address: "" },
+    { rowid: 37, id: "0018", name: "สาขาโกทา",                      address: "" },
+    { rowid: 67, id: "0026", name: "สาขาบ้านชาม test",              address: "" },
+    { rowid: 78, id: "0034", name: "สาขาชำสูง",                     address: "" },
+    { rowid: 79, id: "0035", name: "สาขาร.8",                       address: "" },
+    { rowid: 80, id: "0036", name: "สาขาเกียรติสินโฮลเซล",           address: "" },
+    { rowid: 82, id: "0037", name: "สาขาดอนหัน(00037)",             address: "" },
+  ]},
+  { section: "ศูนย์กระจายสินค้า", items: [
+    { rowid: 3,  id: "8881", name: "คลังสินค้าแปรรูป",    address: "" },
+    { rowid: 26, id: "7777", name: "คลังวัสดุสิ้นเปลือง", address: "" },
+    { rowid: 43, id: "B043", name: "คลังแช่แข็ง-พร้อมทาน",address: "" },
+    { rowid: 75, id: "8888", name: "คลังทรัพย์สิน",       address: "" },
+    { rowid: 76, id: "6666", name: "คลังแปรรูปโกทา",      address: "" },
+    { rowid: 77, id: "5555", name: "คลังแปรรูปบ้านไผ่",   address: "" },
+    { rowid: 81, id: "9991", name: "คลังแปรรูปร.8",       address: "" },
+  ]},
+  { section: "หยุดดำเนินการ", items: [
+    { rowid: 30, id: "8882", name: "คลังหมูขอนแก่น",  address: "" },
+    { rowid: 59, id: "0022", name: "สาขาบ้านดอนหัน",  address: "" },
+  ]},
+];
+
 // ===== BRANCHES =====
 export const BRANCHES = [
   { section: "Backoffice", items: [

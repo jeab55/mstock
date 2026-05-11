@@ -5,7 +5,7 @@ import LoadingOverlay from './LoadingOverlay';
 import { useAppStore } from '../../store/appStore';
 import { useLV1, useLV2, useLots } from '../../hooks/useStockData';
 import { computeAvgPrice } from '../../lib/calc';
-import { printLV1, printLV1LV2, exportExcel, exportPDF } from '../../lib/reportExport';
+import { printLV1, printLV2, exportExcel, exportPDFLV2 } from '../../lib/reportExport';
 import { base44 } from '@/api/base44Client';
 
 const LV1_COLS = [
@@ -112,9 +112,9 @@ export default function TabRakarn({ onOpenBrand, onOpenMid, onOpenMsubtype }) {
   const reportCtx = { selectedBranch, dateRange, selectedMtype, user: currentUser };
 
   const handlePrint1 = () => runAsync('p1', async () => printLV1(lv1Rows, reportCtx));
-  const handlePrint2 = () => runAsync('p2', async () => printLV1LV2(lv1Rows, reportCtx));
+  const handlePrint2 = () => runAsync('p2', async () => printLV2(lv2Rows, { selectedBranch, selectedMid, selectedMidInfo: selectedMidInfo?.info, dateRange, user: currentUser, footerData }));
   const handleExcel  = () => runAsync('e1', async () => exportExcel(lv1Rows, reportCtx));
-  const handlePDF    = () => runAsync('e2', async () => exportPDF(lv1Rows, reportCtx));
+  const handlePDF    = () => runAsync('e2', async () => exportPDFLV2(lv2Rows, { selectedBranch, selectedMid, selectedMidInfo: selectedMidInfo?.info, dateRange, user: currentUser, footerData }));
 
   useEffect(() => {
     const onKey = (e) => {
@@ -140,13 +140,14 @@ export default function TabRakarn({ onOpenBrand, onOpenMid, onOpenMsubtype }) {
   };
 
   const noDataTip = !hasData ? 'ไม่มีข้อมูลให้พิมพ์/ส่งออก' : undefined;
+  const noDataTip2 = !selectedMid ? 'เลือก mid ในกริดซ้ายก่อน' : noDataTip;
   const toolbarButtons = [
     { icon: '📑', iconKey: '📑', label: 'ชนิด',    onClick: onOpenBrand, group: 0 },
     { icon: '📋', iconKey: '📋', label: 'ประเภท',  onClick: onOpenMsubtype, disabled: !selectedMtype, title: !selectedMtype ? 'เลือกชนิดก่อน' : undefined, group: 0 },
-    { icon: '🖨', iconKey: '🖨', label: 'พิมพ์ย่อ',  onClick: handlePrint1,  disabled: !hasData || !!busy, loading: busy === 'p1', title: noDataTip || 'พิมพ์รายงานสต๊อกแบบกะทัดรัด A4 ตั้ง', group: 1 },
-    { icon: '🖨', iconKey: '🖨', label: 'พิมพ์ละเอียด',  onClick: handlePrint2,  disabled: !hasData || !!busy, loading: busy === 'p2', title: noDataTip || 'พิมพ์รายงานพร้อมรายละเอียดการเคลื่อนไหว', group: 1 },
-    { icon: '📤', iconKey: '📤', label: 'Excel', onClick: handleExcel,   disabled: !hasData || !!busy, loading: busy === 'e1', title: noDataTip || 'ส่งออกเป็นไฟล์ Excel (.xlsx)', group: 2 },
-    { icon: '📄', iconKey: '📄', label: 'PDF', onClick: handlePDF,     disabled: !hasData || !!busy, loading: busy === 'e2', title: noDataTip || 'ส่งออกเป็นไฟล์ PDF', group: 2 },
+    { icon: '🖨', iconKey: '🖨', label: 'พิมพ์ย่อ',  onClick: handlePrint1,  disabled: !hasData || !!busy, loading: busy === 'p1', title: noDataTip || 'พิมพ์ LV1 (สรุปสต๊อก) A4 ตั้ง', group: 1 },
+    { icon: '🖨', iconKey: '🖨', label: 'พิมพ์ละเอียด',  onClick: handlePrint2,  disabled: !selectedMid || !!busy, loading: busy === 'p2', title: noDataTip2 || 'พิมพ์ LV2 (movement detail) A4 แนวนอน', group: 1 },
+    { icon: '📤', iconKey: '📤', label: 'Excel', onClick: handleExcel,   disabled: !hasData || !!busy, loading: busy === 'e1', title: noDataTip || 'ส่งออก LV1 เป็นไฟล์ Excel', group: 2 },
+    { icon: '📄', iconKey: '📄', label: 'PDF', onClick: handlePDF,     disabled: !selectedMid || !!busy, loading: busy === 'e2', title: noDataTip2 || 'ส่งออก LV2 เป็นไฟล์ PDF', group: 2 },
     { icon: '❓', iconKey: '❓', label: 'ค้นรหัส',     onClick: onOpenMid, title: 'ค้นหารหัสสินค้า', group: 3 },
     { icon: '💲', iconKey: '💲', label: 'ค้นราคา',  onClick: () => {}, title: 'ค้นหาข้อมูลราคา', group: 3 },
   ];

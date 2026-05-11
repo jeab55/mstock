@@ -258,3 +258,9 @@ export function exportPDF(lv1Rows, { selectedBranch, dateRange, selectedMtype, s
   const mtName = mt ? mt.name.replace(/[/\\?*[\]:]/g, '-') : 'all';
   doc.save(`Stock_${selectedBranch.id}_${mtName}_${date1}-${date2}.pdf`);
 }
+
+// ─── Export PDF: LV2 movements ──────────────────────────────────────────────────
+export function exportPDFLV2(lv2Rows, { selectedBranch, selectedMid, selectedMidInfo, dateRange, user, footerData }) {
+  if (!selectedMid) return;
+  printLV2(lv2Rows, { selectedBranch, selectedMid, selectedMidInfo, dateRange, user, footerData });
+}

@@ -10,29 +10,29 @@ import { base44 } from '@/api/base44Client';
 
 const LV1_COLS = [
   { key: 'mid',    label: 'mid',     width: 80 },
-  { key: 'info',   label: 'Info',    width: 280 },
-  { key: 'carry',  label: 'Carry',   width: 80, align: 'right' },
-  { key: 'debit',  label: 'Debit+',  width: 80, align: 'right' },
-  { key: 'credit', label: 'Credit-', width: 80, align: 'right' },
-  { key: 'total',  label: 'Total',   width: 80, align: 'right' },
+  { key: 'info',   label: 'Info',    width: 200 },
+  { key: 'carry',  label: 'Carry',   width: 90, align: 'right' },
+  { key: 'debit',  label: 'Debit+',  width: 90, align: 'right' },
+  { key: 'credit', label: 'Credit-', width: 90, align: 'right' },
+  { key: 'total',  label: 'Total',   width: 90, align: 'right' },
 ];
 
 const LV2_COLS = [
-  { key: 'abill',  label: 'Abill',   width: 60 },
-  { key: 'billno', label: 'Billno',  width: 190 },
-  { key: 'adate',  label: 'Adate',   width: 85 },
-  { key: 'debit',  label: 'Debit+',  width: 80, align: 'right' },
-  { key: 'credit', label: 'Credit-', width: 80, align: 'right' },
-  { key: 'at',     label: '@T',      width: 220 },
+  { key: 'abill',  label: 'Abill',   width: 50 },
+  { key: 'billno', label: 'Billno',  width: 160 },
+  { key: 'adate',  label: 'Adate',   width: 90 },
+  { key: 'debit',  label: 'Debit+',  width: 90, align: 'right' },
+  { key: 'credit', label: 'Credit-', width: 90, align: 'right' },
+  { key: 'at',     label: '@T',      width: 160 },
 ];
 
 const LV7_COLS = [
-  { key: 'lot',    label: 'lot',    width: 40 },
-  { key: 'billno', label: 'Billno', width: 190 },
-  { key: 'adate',  label: 'Adate',  width: 85 },
-  { key: 'debit',  label: 'Debit',  width: 80, align: 'right' },
-  { key: 'calc',   label: 'Calc',   width: 80, align: 'right' },
-  { key: 'cost',   label: 'Cost',   width: 80, align: 'right' },
+  { key: 'lot',    label: 'lot',    width: 50 },
+  { key: 'billno', label: 'Billno', width: 160 },
+  { key: 'adate',  label: 'Adate',  width: 90 },
+  { key: 'debit',  label: 'Debit',  width: 90, align: 'right' },
+  { key: 'calc',   label: 'Calc',   width: 90, align: 'right' },
+  { key: 'cost',   label: 'Cost',   width: 90, align: 'right' },
 ];
 
 export default function TabRakarn({ onOpenBrand, onOpenMid }) {
@@ -151,7 +151,7 @@ export default function TabRakarn({ onOpenBrand, onOpenMid }) {
       <Toolbar buttons={toolbarButtons} />
       <div className="flex-1 flex overflow-hidden">
         {/* Left: LV1 + LV7 */}
-        <div className="flex flex-col overflow-hidden flex-shrink-0" style={{ width: '38%' }}>
+        <div className="flex flex-col overflow-hidden flex-shrink-0" style={{ width: '45%' }}>
           <div className="overflow-hidden relative" style={{ height: '70%' }}>
             {lv1Loading && <LoadingOverlay />}
             <ListView
@@ -177,6 +177,8 @@ export default function TabRakarn({ onOpenBrand, onOpenMid }) {
             />
           </div>
         </div>
+        {/* Vertical divider */}
+        <div className="flex-shrink-0" style={{ width: 4, background: '#a0a0a0' }} />
         {/* Right: LV2 */}
         <div className="overflow-hidden flex flex-col flex-1 relative">
           {lv2Loading && <LoadingOverlay />}

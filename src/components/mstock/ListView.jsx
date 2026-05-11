@@ -45,42 +45,34 @@ export default function ListView({ columns, rows, headerRow, subHeaderRow, onRow
       {/* Header row (+ row) */}
       {headerRow && (
         <div className="flex flex-shrink-0" style={{ background: '#C0DCC0' }}>
-          {columns.map((col, ci) => (
-            <div
-              key={ci}
-              className="px-1.5 py-px border-b truncate flex-shrink-0"
-              style={{
-                width: col.width,
-                minWidth: col.width,
-                textAlign: col.align || 'left',
-                borderColor: '#f0f0f0',
-                fontSize: '12px',
-              }}
-            >
-              {headerRow[col.key] !== undefined ? (typeof headerRow[col.key] === 'number' ? formatNum(headerRow[col.key]) : headerRow[col.key]) : ''}
-            </div>
-          ))}
+          {columns.map((col, ci) => {
+            const val = headerRow[col.key];
+            const display = val !== undefined ? (typeof val === 'number' ? formatNum(val) : val) : '';
+            return (
+              <div key={ci} className="px-1.5 py-px border-b flex-shrink-0"
+                style={{ width: col.width, minWidth: col.width, textAlign: col.align || 'left', borderColor: '#f0f0f0', fontSize: 12, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', fontVariantNumeric: col.align === 'right' ? 'tabular-nums' : undefined }}
+                title={display}>
+                {display}
+              </div>
+            );
+          })}
         </div>
       )}
 
       {/* SubHeader row ([- row) */}
       {subHeaderRow && (
         <div className="flex flex-shrink-0" style={{ background: '#BFF0F7' }}>
-          {columns.map((col, ci) => (
-            <div
-              key={ci}
-              className="px-1.5 py-px border-b truncate flex-shrink-0"
-              style={{
-                width: col.width,
-                minWidth: col.width,
-                textAlign: col.align || 'left',
-                borderColor: '#f0f0f0',
-                fontSize: '12px',
-              }}
-            >
-              {subHeaderRow[col.key] !== undefined ? (typeof subHeaderRow[col.key] === 'number' ? formatNum(subHeaderRow[col.key]) : subHeaderRow[col.key]) : ''}
-            </div>
-          ))}
+          {columns.map((col, ci) => {
+            const val = subHeaderRow[col.key];
+            const display = val !== undefined ? (typeof val === 'number' ? formatNum(val) : val) : '';
+            return (
+              <div key={ci} className="px-1.5 py-px border-b flex-shrink-0"
+                style={{ width: col.width, minWidth: col.width, textAlign: col.align || 'left', borderColor: '#f0f0f0', fontSize: 12, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', fontVariantNumeric: col.align === 'right' ? 'tabular-nums' : undefined }}
+                title={display}>
+                {display}
+              </div>
+            );
+          })}
         </div>
       )}
 
@@ -133,10 +125,13 @@ export default function ListView({ columns, rows, headerRow, subHeaderRow, onRow
                       textAlign: col.align || 'left',
                       borderBottom: '1px solid #f0f0f0',
                       color: isRed ? '#ff0000' : undefined,
-                      overflow: ci === columns.length - 1 ? 'visible' : 'hidden',
+                      overflow: 'hidden',
                       whiteSpace: 'nowrap',
-                      fontSize: '12px',
+                      textOverflow: 'ellipsis',
+                      fontSize: 12,
+                      fontVariantNumeric: col.align === 'right' ? 'tabular-nums' : undefined,
                     }}
+                    title={display}
                   >
                     {display}
                   </div>

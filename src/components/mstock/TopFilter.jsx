@@ -78,63 +78,61 @@ export default function TopFilter({ onOpenBranch }) {
   const handleFrom = (e) => setDateRange({ ...dateRange, from: e.target.value });
   const handleTo   = (e) => setDateRange({ ...dateRange, to: e.target.value });
 
+  const btnStyle = {
+    background: '#d4d0c8',
+    border: '1px solid',
+    borderColor: '#ffffff #808080 #808080 #ffffff',
+    width: 24, height: 24,
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    cursor: 'pointer', flexShrink: 0,
+    padding: 0,
+  };
+  const labelStyle = { fontSize: 12, whiteSpace: 'nowrap', flexShrink: 0, fontFamily: 'var(--font-tahoma)' };
+  const inputStyle = { fontSize: 12, border: '1px solid #888', background: '#fff', height: 22, fontFamily: 'var(--font-tahoma)' };
+
   return (
-    <div className="h-11 flex items-center gap-1 px-2 flex-shrink-0" style={{ background: '#F9CBAC', fontSize: '12px' }}>
+    <div className="flex items-center gap-1 px-2 flex-shrink-0 overflow-hidden" style={{ background: '#F9CBAC', height: 40 }}>
       {/* Branch label */}
-      <div className="px-1.5 py-0.5 border border-gray-400 truncate" style={{ background: '#FFFFE1', maxWidth: '160px', minWidth: '100px' }}>
+      <div className="px-1.5 border border-gray-400 truncate flex-shrink-0" style={{ background: '#FFFFE1', maxWidth: 150, minWidth: 80, height: 22, lineHeight: '22px', fontSize: 12 }}
+        title={selectedBranch.name}>
         {selectedBranch.name}
       </div>
-      <button onClick={onOpenBranch} className="delphi-btn flex items-center gap-1 px-1.5 py-0.5 flex-shrink-0" style={{ background: '#c0dcc0' }}>
+      <button onClick={onOpenBranch} style={{ ...btnStyle, width: 'auto', padding: '0 6px', gap: 3, fontSize: 12 }}>
         <FolderOpen className="w-3 h-3" /> สาขา
       </button>
 
-      <div className="w-px h-6 bg-gray-500 mx-1" />
+      <div className="flex-shrink-0" style={{ width: 1, height: 24, background: '#808080', margin: '0 2px' }} />
 
       {/* สัปดาห์ */}
-      <span className="whitespace-nowrap flex-shrink-0">สัปดาห์</span>
-      <button className="delphi-btn px-1 flex-shrink-0" onClick={() => setWeek(Math.max(1, curWeek - 1))}><ChevronLeft className="w-3 h-3" /></button>
-      <input
-        type="number"
-        className="w-8 text-center border border-gray-400 bg-white px-0.5 flex-shrink-0"
-        style={{ fontSize: '12px' }}
-        value={curWeek}
-        onChange={e => setWeek(Number(e.target.value))}
-      />
-      <button className="delphi-btn px-1 flex-shrink-0" onClick={() => setWeek(curWeek + 1)}><ChevronRight className="w-3 h-3" /></button>
+      <span style={labelStyle}>สัปดาห์</span>
+      <button style={btnStyle} onClick={() => setWeek(Math.max(1, curWeek - 1))}><ChevronLeft className="w-3 h-3" /></button>
+      <input type="number" style={{ ...inputStyle, width: 34, textAlign: 'center', padding: '0 2px' }}
+        value={curWeek} onChange={e => setWeek(Number(e.target.value))} />
+      <button style={btnStyle} onClick={() => setWeek(curWeek + 1)}><ChevronRight className="w-3 h-3" /></button>
 
       {/* เดือน */}
-      <span className="ml-1 whitespace-nowrap flex-shrink-0">เดือน</span>
-      <select
-        className="border border-gray-400 bg-white px-1 py-0.5 flex-shrink-0"
-        style={{ fontSize: '12px' }}
-        value={selMonth}
-        onChange={e => handleMonthChange(Number(e.target.value))}
-      >
+      <span style={labelStyle}>เดือน</span>
+      <select style={{ ...inputStyle, padding: '0 2px' }} value={selMonth} onChange={e => handleMonthChange(Number(e.target.value))}>
         {MONTH_NAMES.map((mn, i) => <option key={i} value={i}>{mn}</option>)}
       </select>
 
       {/* ปี */}
-      <span className="ml-1 whitespace-nowrap flex-shrink-0">ปี</span>
-      <select
-        className="border border-gray-400 bg-white px-1 py-0.5 flex-shrink-0"
-        style={{ fontSize: '12px' }}
-        value={selYear}
-        onChange={e => handleYearChange(Number(e.target.value))}
-      >
+      <span style={labelStyle}>ปี</span>
+      <select style={{ ...inputStyle, padding: '0 2px', width: 56 }} value={selYear} onChange={e => handleYearChange(Number(e.target.value))}>
         {[2024,2025,2026,2027].map(y => <option key={y} value={y}>{y}</option>)}
       </select>
 
-      <div className="w-px h-6 bg-gray-500 mx-1 flex-shrink-0" />
+      <div className="flex-shrink-0" style={{ width: 1, height: 24, background: '#808080', margin: '0 2px' }} />
 
       {/* วันที่ */}
-      <span className="whitespace-nowrap flex-shrink-0">วันที่</span>
-      <input type="date" value={dateRange.from} onChange={handleFrom} className="w-[110px] border border-gray-400 bg-white px-1 text-center flex-shrink-0" style={{ fontSize: '12px' }} />
-      <span className="whitespace-nowrap flex-shrink-0">ถึง</span>
-      <input type="date" value={dateRange.to} onChange={handleTo} className="w-[110px] border border-gray-400 bg-white px-1 text-center flex-shrink-0" style={{ fontSize: '12px' }} />
+      <span style={labelStyle}>วันที่</span>
+      <input type="date" value={dateRange.from} onChange={handleFrom} style={{ ...inputStyle, width: 112, textAlign: 'center', padding: '0 2px' }} />
+      <span style={labelStyle}>ถึง</span>
+      <input type="date" value={dateRange.to} onChange={handleTo} style={{ ...inputStyle, width: 112, textAlign: 'center', padding: '0 2px' }} />
 
-      <button className="delphi-btn px-1 flex-shrink-0" onClick={() => shiftDate1(-1)}><ChevronLeft className="w-3 h-3" /></button>
-      <button className="delphi-btn px-1 flex-shrink-0" onClick={() => shiftDate1(1)}><ChevronRight className="w-3 h-3" /></button>
-      <button className="delphi-btn px-1 flex-shrink-0" onClick={setEqualDates}><Equal className="w-3 h-3" /></button>
+      <button style={btnStyle} onClick={() => shiftDate1(-1)}><ChevronLeft className="w-3 h-3" /></button>
+      <button style={btnStyle} onClick={() => shiftDate1(1)}><ChevronRight className="w-3 h-3" /></button>
+      <button style={btnStyle} onClick={setEqualDates}><Equal className="w-3 h-3" /></button>
     </div>
   );
 }

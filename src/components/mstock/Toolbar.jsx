@@ -87,7 +87,7 @@ const ICON_MAP = {
 
 export default function Toolbar({ buttons }) {
   return (
-    <div className="flex items-end gap-px px-1 pt-1 pb-0 flex-shrink-0" style={{ background: '#d4d0c8', borderBottom: '1px solid #808080', minHeight: 44 }}>
+    <div className="flex items-center gap-1 px-1.5 flex-shrink-0" style={{ background: '#d4d0c8', borderBottom: '1px solid #808080', height: 40 }}>
       {buttons.map((btn, i) => {
         const isDisabled = !!btn.disabled;
         return (
@@ -95,25 +95,27 @@ export default function Toolbar({ buttons }) {
             key={i}
             onClick={isDisabled ? undefined : btn.onClick}
             disabled={isDisabled}
-            className="flex flex-col items-center justify-end px-1.5 pb-0.5 select-none"
+            className="flex flex-col items-center justify-center select-none"
             style={{
               background: '#d4d0c8',
               border: '1px solid',
               borderColor: '#ffffff #808080 #808080 #ffffff',
-              minWidth: 42,
-              height: 38,
+              width: 46,
+              height: 34,
               cursor: isDisabled ? 'not-allowed' : 'pointer',
               opacity: isDisabled ? 0.5 : 1,
+              fontFamily: 'var(--font-tahoma)',
             }}
             title={btn.title || btn.label}
-            onMouseDown={e => { if (!isDisabled) e.currentTarget.style.borderColor = '#808080 #ffffff #ffffff #808080'; }}
-            onMouseUp={e => { if (!isDisabled) e.currentTarget.style.borderColor = '#ffffff #808080 #808080 #ffffff'; }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = '#ffffff #808080 #808080 #ffffff'; }}
+            onMouseEnter={e => { if (!isDisabled) e.currentTarget.style.background = '#e8e4dc'; }}
+            onMouseDown={e => { if (!isDisabled) { e.currentTarget.style.borderColor = '#808080 #ffffff #ffffff #808080'; e.currentTarget.style.background = '#b8d0e8'; } }}
+            onMouseUp={e => { if (!isDisabled) { e.currentTarget.style.borderColor = '#ffffff #808080 #808080 #ffffff'; e.currentTarget.style.background = '#e8e4dc'; } }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = '#ffffff #808080 #808080 #ffffff'; e.currentTarget.style.background = '#d4d0c8'; }}
           >
-            <span className="flex items-center justify-center" style={{ width: 20, height: 20 }}>
-              {btn.loading ? <Spinner /> : (ICON_MAP[btn.iconKey] || <span style={{ fontSize: 14 }}>{btn.icon}</span>)}
+            <span className="flex items-center justify-center" style={{ width: 18, height: 18 }}>
+              {btn.loading ? <Spinner /> : (ICON_MAP[btn.iconKey] || <span style={{ fontSize: 13 }}>{btn.icon}</span>)}
             </span>
-            <span style={{ fontSize: 9, lineHeight: '12px', whiteSpace: 'nowrap', color: '#000' }}>{btn.label}</span>
+            <span style={{ fontSize: 9, lineHeight: '11px', whiteSpace: 'nowrap', color: '#000', marginTop: 1 }}>{btn.label}</span>
           </button>
         );
       })}

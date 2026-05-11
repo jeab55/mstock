@@ -8,19 +8,27 @@ export default function StatusBar() {
   const { lots, salePrice } = useLots();
   const avgPrice = useMemo(() => computeAvgPrice(lots), [lots]);
 
+  const sep = <span style={{ width: 1, background: '#808080', alignSelf: 'stretch', margin: '2px 0' }} />;
   return (
-    <div className="h-[22px] flex items-center text-xs flex-shrink-0 border-t" style={{ background: '#d4d0c8', borderColor: '#808080' }}>
-      <div className="px-2 border-r border-gray-500 h-full flex items-center">
-        <span className="text-gray-600">Lotid:</span>&nbsp;<span>{lots.length}</span>
+    <div className="flex items-center flex-shrink-0 border-t" style={{ background: '#d4d0c8', borderColor: '#808080', height: 22, fontSize: 12, fontFamily: 'var(--font-tahoma)' }}>
+      <div className="px-2 h-full flex items-center gap-1">
+        <span style={{ color: '#555' }}>Lotid</span>
+        <span style={{ fontVariantNumeric: 'tabular-nums' }}>{lots.length}</span>
       </div>
-      <div className="px-2 border-r border-gray-500 h-full flex items-center">
-        <span className="text-gray-600">AvgPrice:</span>&nbsp;<span>{avgPrice.toFixed(2)}</span>
+      {sep}
+      <div className="px-2 h-full flex items-center gap-1">
+        <span style={{ color: '#555' }}>AvgPrice</span>
+        <span style={{ fontVariantNumeric: 'tabular-nums' }}>{avgPrice.toFixed(2)}</span>
       </div>
-      <div className="px-2 border-r border-gray-500 h-full flex items-center">
-        <span className="text-gray-600">Price:</span>&nbsp;<span>{salePrice.toFixed(2)}</span>
+      {sep}
+      <div className="px-2 h-full flex items-center gap-1">
+        <span style={{ color: '#555' }}>Price</span>
+        <span style={{ fontVariantNumeric: 'tabular-nums' }}>{salePrice.toFixed(2)}</span>
       </div>
-      <div className="px-2 h-full flex items-center">
-        <span className="text-gray-600">Second:</span>&nbsp;<span>{statusSecond}</span>
+      {sep}
+      <div className="px-2 h-full flex items-center gap-1">
+        <span style={{ color: '#555' }}>Second</span>
+        <span>{statusSecond}</span>
       </div>
     </div>
   );

@@ -9,6 +9,7 @@ import TabSheet6 from '../components/mstock/TabSheet6';
 import StatusBar from '../components/mstock/StatusBar';
 import ModalFindBrand from '../components/mstock/ModalFindBrand';
 import ModalFindBranch from '../components/mstock/ModalFindBranch';
+import ModalFindSubtype from '../components/mstock/ModalFindSubtype';
 import ModalMidPicker from '../components/mstock/ModalMidPicker';
 import { useAppStore } from '../store/appStore';
 import { useBranches } from '../hooks/useStockData';
@@ -19,9 +20,13 @@ export default function StockDetail() {
   // Auto-load branches + set default branch on mount
   useBranches();
 
-  // F8 → open branch modal
+  // F2 → open mtype (ชนิด) modal, F3 → open brand (ประเภท) modal, F8 → open branch modal
   useEffect(() => {
-    const onKey = (e) => { if (e.key === 'F8') { e.preventDefault(); setModalOpen('branch'); } };
+    const onKey = (e) => {
+      if (e.key === 'F2') { e.preventDefault(); setModalOpen('brand'); }
+      if (e.key === 'F3') { e.preventDefault(); setModalOpen('subtype'); }
+      if (e.key === 'F8') { e.preventDefault(); setModalOpen('branch'); }
+    };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [setModalOpen]);
@@ -43,6 +48,7 @@ export default function StockDetail() {
 
       {modalOpen === 'branch' && <ModalFindBranch onClose={() => setModalOpen(null)} />}
       {modalOpen === 'brand'  && <ModalFindBrand  onClose={() => setModalOpen(null)} />}
+      {modalOpen === 'subtype' && <ModalFindSubtype onClose={() => setModalOpen(null)} />}
       {modalOpen === 'mid'    && <ModalMidPicker   onClose={() => setModalOpen(null)} />}
     </div>
   );

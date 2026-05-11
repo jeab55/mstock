@@ -8,9 +8,9 @@ import { api } from '../lib/api';
 import { toast } from 'sonner';
 
 // ─── useLV1 ──────────────────────────────────────────────────────────────────
-// Delphi LV1: stockcard grouped by mid for a mtype+branch+daterange
+// Delphi LV1: stockcard grouped by mid for a mtype+brand(optional)+branch+daterange
 export function useLV1() {
-  const { selectedCompany, selectedBranch, dateRange, selectedMtype } = useAppStore();
+  const { selectedCompany, selectedBranch, dateRange, selectedMtype, selectedBrand } = useAppStore();
   const [rows, setRows]       = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -18,6 +18,7 @@ export function useLV1() {
     const company  = selectedCompany;
     const branchId = selectedBranch.id;
     const mtype    = selectedMtype;
+    const brand    = selectedBrand;
     const from     = dateRange.from;
     const to       = dateRange.to;
 
@@ -26,11 +27,11 @@ export function useLV1() {
       return;
     }
 
-    console.log('[useLV1] fetch →', { company, branchId, mtype, from, to });
+    console.log('[useLV1] fetch →', { company, branchId, mtype, brand, from, to });
     let cancelled = false;
     setLoading(true);
 
-    api.stockcard(company, branchId, mtype, from, to)
+    api.stockcard(company, branchId, mtype, brand, from, to)
       .then(data => {
         if (cancelled) return;
         console.log('[useLV1] got', (data.rows || []).length, 'rows');
@@ -44,7 +45,7 @@ export function useLV1() {
       .finally(() => { if (!cancelled) setLoading(false); });
 
     return () => { cancelled = true; };
-  }, [selectedCompany, selectedBranch.id, dateRange.from, dateRange.to, selectedMtype]);
+  }, [selectedCompany, selectedBranch.id, dateRange.from, dateRange.to, selectedMtype, selectedBrand]);
 
   return { rows, loading };
 }
@@ -52,7 +53,7 @@ export function useLV1() {
 // ─── useLV2 ──────────────────────────────────────────────────────────────────
 // Delphi LV2: movements for one mid grouped by Abill (SUBSTR(billno,1,2))
 export function useLV2() {
-  const { selectedCompany, selectedBranch, dateRange, selectedMid } = useAppStore();
+  const { selectedCompany, selectedBranch, dateRange, selectedMid, selectedBrand } = useAppStore();
   const [rows, setRows]       = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -63,11 +64,12 @@ export function useLV2() {
     const from     = dateRange.from;
     const to       = dateRange.to;
     const mid      = selectedMid;
+    const brand    = selectedBrand;
 
     let cancelled = false;
     setLoading(true);
 
-    api.movements(company, branchId, mid, from, to)
+    api.movements(company, branchId, mid, brand, from, to)
       .then(data => {
         if (cancelled) return;
         const moves = data.rows || [];
@@ -114,7 +116,7 @@ export function useLV2() {
       .finally(() => { if (!cancelled) setLoading(false); });
 
     return () => { cancelled = true; };
-  }, [selectedCompany, selectedBranch.id, dateRange.from, dateRange.to, selectedMid]);
+  }, [selectedCompany, selectedBranch.id, dateRange.from, dateRange.to, selectedMid, selectedBrand]);
 
   return { rows, loading };
 }

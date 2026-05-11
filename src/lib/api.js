@@ -14,11 +14,13 @@ export const api = {
   branches:            (company, opts = {})                           => call('branches',              { company, ...opts }),
   // mtypes = "ชนิด" picker (mtype table — Fsearch.pas with table='mtype')
   mtypes:              (company, q = '')                              => call('mtypes',                { company, q }),
+  // brands = "ประเภท" picker — filtered by typeid if provided
+  brands:              (company, typeid, q = '')                      => call('brands',                { company, typeid, q }),
   materials:           (company, mtype)                               => call('materials',             { company, mtype }),
-  // LV1: Delphi stockcard query — filter by mtype.typeid
-  stockcard:           (company, branch, mtype, from, to)             => call('stockcard',             { company, branch, mtype, from, to }),
+  // LV1: Delphi stockcard query — filter by mtype.typeid and optional brand.id
+  stockcard:           (company, branch, mtype, brand, from, to)      => call('stockcard',             { company, branch, mtype, brand, from, to }),
   // LV2: movements grouped by Abill (SUBSTRING(billno,1,2))
-  movements:           (company, branch, mid, from, to)               => call('movements',             { company, branch, mid, from, to }),
+  movements:           (company, branch, mid, brand, from, to)        => call('movements',             { company, branch, mid, brand, from, to }),
   // LV7: FIFO lot grid — pass branchcode for POS.material_{branchcode}
   lots:                (company, branch, mid, branchcode)             => call('lots',                  { company, branch, mid, branchcode }),
   // TabChanid summary views

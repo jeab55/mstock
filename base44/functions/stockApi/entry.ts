@@ -99,6 +99,22 @@ Deno.serve(async (req) => {
       return Response.json({ rows });
     }
 
+    // ── brands — "ประเภท" picker — filter by typeid if provided ────────────
+    // SELECT id, brandname FROM brand WHERE (typeid IS NULL OR typeid=?) AND brandname LIKE ? ORDER BY id
+    if (action === 'brands') {
+      const typeid = params.typeid ? Number(params.typeid) : null;
+      const q = params.q || '';
+      let sql = `SELECT id, brandname AS name FROM brand WHERE brandname LIKE ?`;
+      const args = [`%${q}%`];
+      if (typeid) {
+        sql += ` AND typeid = ?`;
+        args.push(typeid);
+      }
+      sql += ` ORDER BY id`;
+      const rows = await query(company, sql, args);
+      return Response.json({ rows });
+    }
+
     // ── materials ─────────────────────────────────────────────────────────────
     if (action === 'materials') {
       const { mtype } = params;
@@ -110,23 +126,20 @@ Deno.serve(async (req) => {
       return Response.json({ rows });
     }
 
-    // ── stockcard (LV1) — Delphi exact SQL (filter by mtype.typeid) ─────────
-    // SELECT t.typename, a.mid, m.info,
-    //   SUM(IF(stockdate < ?, debit, 0)) carryd,
-    //   SUM(IF(stockdate < ?, credit, 0)) carryc,
-    //   SUM(IF(stockdate BETWEEN ? AND ?, credit, 0)) credit_,
-    //   SUM(IF(stockdate BETWEEN ? AND ?, debit, 0)) debit_
-    // FROM stockcard a
-    // INNER JOIN material m ON a.mid = m.mid
-    // INNER JOIN mtype t ON t.id = m.typeid
-    // WHERE a.branchid = ? AND m.typeid = ?
-    // GROUP BY mid, typename
+    // ── stockcard (LV1) — Delphi exact SQL (filter by mtype.typeid + optional brand.id) ─────
     if (action === 'stockcard') {
-      const { branch, mtype, from: date1, to: date2 } = params;
+      const { branch, mtype, brand, from: date1, to: date2 } = params;
       if (!branch || !mtype || !date1 || !date2) return Response.json({ error: 'branch, mtype, from, to required' }, { status: 400 });
 
       const d1time = `${date1} 00:00:00`;
       const d2time = `${date2} 23:59:59`;
+      const args = [d1time, d1time, d1time, d2time, d1time, d2time, Number(branch), Number(mtype)];
+
+      let where = `WHERE a.branchid = ? AND m.typeid = ?`;
+      if (brand) {
+        where += ` AND m.brand = ?`;
+        args.push(Number(brand));
+      }
 
       const rows = await query(company, `
         SELECT
@@ -140,10 +153,10 @@ Deno.serve(async (req) => {
         FROM stockcard a
         INNER JOIN material m ON a.mid = m.mid
         INNER JOIN mtype t ON t.id = m.typeid
-        WHERE a.branchid = ? AND m.typeid = ?
+        ${where}
         GROUP BY a.mid, t.typename
         ORDER BY a.mid
-      `, [d1time, d1time, d1time, d2time, d1time, d2time, Number(branch), Number(mtype)]);
+      `, args);
 
       const result = rows.map(r => {
         const carryd = parseFloat(r.carryd)  || 0;
@@ -158,16 +171,19 @@ Deno.serve(async (req) => {
     }
 
     // ── movements (LV2) — Delphi exact SQL ──────────────────────────────────
-    // SELECT SUBSTRING(billno,1,2) AS Abill, billno, stockdate, debit AS DR, credit AS CR, T
-    // FROM stockcard a INNER JOIN material m ON a.mid=m.mid INNER JOIN mtype t ON t.id=m.typeid
-    // WHERE a.stockdate BETWEEN ? AND ? AND a.branchid=? AND a.mid=?
-    // ORDER BY Abill, stockdate
     if (action === 'movements') {
-      const { branch, mid, from: date1, to: date2 } = params;
+      const { branch, mid, brand, from: date1, to: date2 } = params;
       if (!branch || !mid || !date1 || !date2) return Response.json({ error: 'branch, mid, from, to required' }, { status: 400 });
 
       const d1time = `${date1} 00:00:00`;
       const d2time = `${date2} 23:59:59`;
+      const args = [d1time, d2time, Number(branch), mid];
+
+      let where = `WHERE a.stockdate BETWEEN ? AND ? AND a.branchid = ? AND a.mid = ?`;
+      if (brand) {
+        where = `WHERE a.stockdate BETWEEN ? AND ? AND a.branchid = ? AND a.mid = ? AND m.brand = ?`;
+        args.push(Number(brand));
+      }
 
       const rows = await query(company, `
         SELECT
@@ -180,11 +196,9 @@ Deno.serve(async (req) => {
         FROM stockcard a
         INNER JOIN material m ON a.mid = m.mid
         INNER JOIN mtype t ON t.id = m.typeid
-        WHERE a.stockdate BETWEEN ? AND ?
-          AND a.branchid = ?
-          AND a.mid = ?
+        ${where}
         ORDER BY abill, a.stockdate
-      `, [d1time, d2time, Number(branch), mid]);
+      `, args);
 
       return Response.json({ rows });
     }

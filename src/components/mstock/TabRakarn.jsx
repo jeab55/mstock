@@ -42,12 +42,15 @@ export default function TabRakarn({ onOpenBrand, onOpenMid, onOpenMsubtype }) {
 
   useEffect(() => { base44.auth.me().then(u => setCurrentUser(u)).catch(() => {}); }, []);
 
-  // F3 shortcut → open brand picker
+  // F2 shortcut → open mtype picker, F3 → open brand/subtype picker
   useEffect(() => {
-    const onKey = (e) => { if (e.key === 'F3') { e.preventDefault(); onOpenBrand?.(); } };
+    const onKey = (e) => {
+      if (e.key === 'F2') { e.preventDefault(); onOpenBrand?.(); }
+      if (e.key === 'F3') { e.preventDefault(); onOpenMsubtype?.(); }
+    };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [onOpenBrand]);
+  }, [onOpenBrand, onOpenMsubtype]);
 
   // ── Real API data ──────────────────────────────────────────────────────────
   const { rows: lv1Rows, loading: lv1Loading } = useLV1();
@@ -138,7 +141,7 @@ export default function TabRakarn({ onOpenBrand, onOpenMid, onOpenMsubtype }) {
   const noDataTip = !hasData ? 'ไม่มีข้อมูลให้พิมพ์/ส่งออก' : undefined;
   const toolbarButtons = [
     { icon: '📑', iconKey: '📑', label: 'ชนิด',    onClick: onOpenBrand },
-    { icon: '📋', iconKey: '📋', label: 'ประเภท',  onClick: onOpenMsubtype },
+    { icon: '📋', iconKey: '📋', label: 'ประเภท',  onClick: onOpenMsubtype, disabled: !selectedMtype },
     { icon: '🖨', iconKey: '🖨', label: 'พิมพ์ 1',  onClick: handlePrint1,  disabled: !hasData || !!busy, loading: busy === 'p1', title: noDataTip },
     { icon: '🖨', iconKey: '🖨', label: 'พิมพ์ 2',  onClick: handlePrint2,  disabled: !hasData || !!busy, loading: busy === 'p2', title: noDataTip },
     { icon: '📤', iconKey: '📤', label: 'ส่งต่อ 1', onClick: handleExcel,   disabled: !hasData || !!busy, loading: busy === 'e1', title: noDataTip },

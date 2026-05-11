@@ -1,15 +1,14 @@
 import React, { useMemo } from 'react';
 import { useAppStore } from '../../store/appStore';
-import { computeFIFOLots, computeAvgPrice, getMaterial } from '../../lib/calc';
+import { computeLots, computeAvgPrice, computeCurrentPrice } from '../../lib/calc';
 
 export default function StatusBar() {
   const { selectedMid, selectedBranch, statusSecond } = useAppStore();
   const branchid = selectedBranch.id;
 
-  const lots = useMemo(() => computeFIFOLots(selectedMid, branchid), [selectedMid, branchid]);
+  const lots     = useMemo(() => computeLots(selectedMid, branchid), [selectedMid, branchid]);
   const avgPrice = useMemo(() => computeAvgPrice(lots), [lots]);
-  const mat = getMaterial(selectedMid);
-  const price = mat?.price3 ?? 0;
+  const price    = useMemo(() => computeCurrentPrice(selectedMid), [selectedMid]);
 
   return (
     <div className="h-[22px] flex items-center text-xs flex-shrink-0 border-t" style={{ background: '#d4d0c8', borderColor: '#808080' }}>

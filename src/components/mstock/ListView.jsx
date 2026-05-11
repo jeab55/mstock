@@ -18,7 +18,7 @@ function formatNum(v) {
   return n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-export default function ListView({ columns, rows, headerRow, subHeaderRow, onRowClick, onRowDoubleClick, selectedIndex, className = '' }) {
+export default function ListView({ columns, rows, headerRow, subHeaderRow, onRowClick, onRowDoubleClick, selectedIndex, className = '', rowStyleFn }) {
   const [hoveredIdx, setHoveredIdx] = useState(-1);
 
   return (
@@ -89,10 +89,13 @@ export default function ListView({ columns, rows, headerRow, subHeaderRow, onRow
           const isSelected = selectedIndex === ri;
           const isHovered = hoveredIdx === ri && !isSelected;
 
-          let bgColor = style.bg || '#ffffff';
-          let textColor = style.color || '#000000';
+          // Custom row style override (e.g. lot coloring)
+          const customStyle = rowStyleFn ? rowStyleFn(row, ri) : null;
+
+          let bgColor = customStyle?.bg || style.bg || '#ffffff';
+          let textColor = customStyle?.color || style.color || '#000000';
           if (isSelected) { bgColor = '#316ac5'; textColor = '#ffffff'; }
-          else if (isHovered) { bgColor = '#e8f0fa'; }
+          else if (isHovered && !customStyle) { bgColor = '#e8f0fa'; }
 
           return (
             <div

@@ -2,8 +2,7 @@ import React, { useMemo, useEffect, useState, useCallback } from 'react';
 import Toolbar from './Toolbar';
 import ListView from './ListView';
 import { useAppStore } from '../../store/appStore';
-import { buildLV1Rows, buildLV2Rows, computeFIFOLots, computeAvgPrice, computeMidStock, getMaterial } from '../../lib/calc';
-import { MATERIALS } from '../../data/mockData';
+import { buildLV1Rows, buildLV2Rows, computeLots, computeAvgPrice, computeCurrentPrice, computeMidStock, getMaterial } from '../../lib/calc';
 import { printLV1, printLV1LV2, exportExcel, exportPDF } from '../../lib/reportExport';
 import { base44 } from '@/api/base44Client';
 
@@ -48,6 +47,7 @@ export default function TabRakarn({ onOpenType, onOpenBrand, onOpenMid, onOpenSu
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [onOpenSubtype]);
+  // Use selectedBranch.id (e.g. "0000") matching STOCK_MOVES.branch_id
   const branchid = selectedBranch.id;
   const { from: date1, to: date2 } = dateRange;
 
@@ -67,40 +67,47 @@ export default function TabRakarn({ onOpenType, onOpenBrand, onOpenMid, onOpenSu
 
   // LV1 header
   const lv1Header = useMemo(() => {
-    const mat = getMaterial(selectedMid);
-    const stock = computeMidStock(selectedMid, branchid, date1, date2);
+    const mat   = getMaterial(selectedMid);
+    const stock = computeMidStock(selectedMid, selectedBranch.id, date1, date2);
     return {
       header:    { mid: '+' + selectedBranch.name, info: mat?.info || '', carry: '', debit: date1.slice(2), credit: date2.slice(2), total: '' },
       subHeader: { mid: '[-', info: mat?.info || '', carry: stock.carry, debit: stock.debit, credit: stock.credit, total: stock.total },
     };
-  }, [selectedMid, selectedBranch, branchid, date1, date2]);
+  }, [selectedMid, selectedBranch, date1, date2]);
 
-  // LV2 rows
+  // LV2 rows — use selectedBranch.id (e.g. "0000") matching STOCK_MOVES.branch_id
   const lv2Rows = useMemo(() =>
-    buildLV2Rows(selectedMid, branchid, date1, date2),
-    [selectedMid, branchid, date1, date2]
+    buildLV2Rows(selectedMid, selectedBranch.id, date1, date2),
+    [selectedMid, selectedBranch, date1, date2]
   );
 
   // LV2 header
   const lv2Header = useMemo(() => {
-    const mat = getMaterial(selectedMid);
-    const stock = computeMidStock(selectedMid, branchid, date1, date2);
+    const mat   = getMaterial(selectedMid);
+    const stock = computeMidStock(selectedMid, selectedBranch.id, date1, date2);
     return {
-      header:    { abill: '+' + selectedBranch.name.slice(0, 14) + '..', billno: selectedMid, adate: mat?.info || '', debit: date1.slice(2), credit: date2.slice(2), at: `${stock.carry.toFixed(2)} | ${stock.debit.toFixed(2)} | ${stock.credit.toFixed(2)} | ${stock.total.toFixed(2)}` },
+      header:    { abill: '+' + selectedBranch.name.slice(0, 14), billno: selectedMid, adate: mat?.info || '', debit: date1.slice(2), credit: date2.slice(2), at: `${stock.carry.toFixed(2)} | ${stock.debit.toFixed(2)} | ${stock.credit.toFixed(2)} | ${stock.total.toFixed(2)}` },
       subHeader: { abill: '[-', billno: mat?.info || '', adate: '', debit: stock.carry, credit: stock.debit, at: `${stock.credit.toFixed(2)}    ${stock.total.toFixed(2)}` },
     };
-  }, [selectedMid, selectedBranch, branchid, date1, date2]);
+  }, [selectedMid, selectedBranch, date1, date2]);
 
-  // LV7 FIFO lots
-  const lv7Rows = useMemo(() =>
-    computeFIFOLots(selectedMid, branchid),
-    [selectedMid, branchid]
-  );
+  // LV7 lots: lot1=black bg/white text (current), lot2+N=red text
+  const lv7Rows = useMemo(() => {
+    const lots = computeLots(selectedMid, branchid);
+    return lots.map((l, i) => ({
+      lot:    String(l.lotid),
+      billno: l.billno,
+      adate:  l.adate,
+      debit:  l.debit,
+      calc:   l.calc,
+      cost:   l.cost,
+      _lotIdx: i, // 0=newest/current
+    }));
+  }, [selectedMid, branchid]);
 
-  const avgPrice = useMemo(() => computeAvgPrice(lv7Rows), [lv7Rows]);
-
-  // Status bar update
-  const mat = getMaterial(selectedMid);
+  const avgPrice    = useMemo(() => computeAvgPrice(lv7Rows), [lv7Rows]);
+  const salePrice   = useMemo(() => computeCurrentPrice(selectedMid), [selectedMid]);
+  const mat         = getMaterial(selectedMid);
 
   const hasData = lv1Rows.length > 0;
   const reportCtx = { selectedBranch, dateRange, selectedMtype, selectedMsubtype, user: currentUser };
@@ -173,6 +180,10 @@ export default function TabRakarn({ onOpenType, onOpenBrand, onOpenMid, onOpenSu
             <ListView
               columns={LV7_COLS}
               rows={lv7Rows}
+              rowStyleFn={(row) => {
+                if (row._lotIdx === 0) return { bg: '#2c2c2c', color: '#ffffff' };
+                return { bg: '#ffffff', color: '#cc0000' };
+              }}
               className="h-full"
             />
           </div>

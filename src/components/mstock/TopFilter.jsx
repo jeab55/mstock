@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { FolderOpen, ChevronLeft, ChevronRight, Equal } from 'lucide-react';
 import { useAppStore } from '../../store/appStore';
 
+const today = new Date();
+
 const MONTH_NAMES = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
 
 function fmt(d) { return d.toISOString().slice(0, 10); }
@@ -29,23 +31,31 @@ function weekRange(year, week) {
 export default function TopFilter({ onOpenBranch }) {
   const { selectedBranch, dateRange, setDateRange } = useAppStore();
 
-  const d1 = parseDate(dateRange.from);
-  const curMonth = d1.getMonth();
-  const curYear  = d1.getFullYear();
-  const curWeek  = getWeek(d1);
+  // Independent month/year state — not derived from dateRange so user overrides don't corrupt them
+  const [selMonth, setSelMonth] = useState(today.getMonth());
+  const [selYear,  setSelYear]  = useState(today.getFullYear());
 
-  const setMonth = (m, y) => {
+  // Week is derived from current dateRange.from for display
+  const curWeek = getWeek(parseDate(dateRange.from));
+
+  const applyMonth = (m, y) => {
     const first = new Date(y, m, 1);
-    const last  = new Date(y, m + 1, 0);
+    const last  = new Date(y, m + 1, 0); // day 0 of next month = last day of this month
     setDateRange({ from: fmt(first), to: fmt(last) });
   };
 
-  const setYear = (y) => {
-    setMonth(curMonth, y);
+  const handleMonthChange = (m) => {
+    setSelMonth(m);
+    applyMonth(m, selYear);
+  };
+
+  const handleYearChange = (y) => {
+    setSelYear(y);
+    applyMonth(selMonth, y);
   };
 
   const setWeek = (w) => {
-    const range = weekRange(curYear, w);
+    const range = weekRange(selYear, w);
     setDateRange(range);
   };
 
@@ -91,8 +101,8 @@ export default function TopFilter({ onOpenBranch }) {
       <select
         className="border border-gray-400 bg-white px-1 py-0.5 flex-shrink-0"
         style={{ fontSize: '12px' }}
-        value={curMonth}
-        onChange={e => setMonth(Number(e.target.value), curYear)}
+        value={selMonth}
+        onChange={e => handleMonthChange(Number(e.target.value))}
       >
         {MONTH_NAMES.map((mn, i) => <option key={i} value={i}>{mn}</option>)}
       </select>
@@ -102,8 +112,8 @@ export default function TopFilter({ onOpenBranch }) {
       <select
         className="border border-gray-400 bg-white px-1 py-0.5 flex-shrink-0"
         style={{ fontSize: '12px' }}
-        value={curYear}
-        onChange={e => setYear(Number(e.target.value))}
+        value={selYear}
+        onChange={e => handleYearChange(Number(e.target.value))}
       >
         {[2024,2025,2026,2027].map(y => <option key={y} value={y}>{y}</option>)}
       </select>

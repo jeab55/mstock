@@ -8,29 +8,29 @@ import { api } from '../lib/api';
 import { toast } from 'sonner';
 
 // ─── useLV1 ──────────────────────────────────────────────────────────────────
-// Delphi LV1: stockcard grouped by mid for a brand+branch+daterange
+// Delphi LV1: stockcard grouped by mid for a mtype+branch+daterange
 export function useLV1() {
-  const { selectedCompany, selectedBranch, dateRange, selectedBrand } = useAppStore();
+  const { selectedCompany, selectedBranch, dateRange, selectedMtype } = useAppStore();
   const [rows, setRows]       = useState([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const company  = selectedCompany;
     const branchId = selectedBranch.id;
-    const brand    = selectedBrand;
+    const mtype    = selectedMtype;
     const from     = dateRange.from;
     const to       = dateRange.to;
 
-    if (!branchId || !brand) {
-      console.log('[useLV1] skip — no branchId or brand', { branchId, brand });
+    if (!branchId || !mtype) {
+      console.log('[useLV1] skip — no branchId or mtype', { branchId, mtype });
       return;
     }
 
-    console.log('[useLV1] fetch →', { company, branchId, brand, from, to });
+    console.log('[useLV1] fetch →', { company, branchId, mtype, from, to });
     let cancelled = false;
     setLoading(true);
 
-    api.stockcard(company, branchId, brand, from, to)
+    api.stockcard(company, branchId, mtype, from, to)
       .then(data => {
         if (cancelled) return;
         console.log('[useLV1] got', (data.rows || []).length, 'rows');
@@ -44,7 +44,7 @@ export function useLV1() {
       .finally(() => { if (!cancelled) setLoading(false); });
 
     return () => { cancelled = true; };
-  }, [selectedCompany, selectedBranch.id, dateRange.from, dateRange.to, selectedBrand]);
+  }, [selectedCompany, selectedBranch.id, dateRange.from, dateRange.to, selectedMtype]);
 
   return { rows, loading };
 }

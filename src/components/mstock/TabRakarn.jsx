@@ -36,7 +36,7 @@ const LV7_COLS = [
 ];
 
 export default function TabRakarn({ onOpenBrand, onOpenMid }) {
-  const { selectedBranch, dateRange, selectedMid, setSelectedMid, setStatusSecond } = useAppStore();
+  const { selectedBranch, dateRange, selectedMid, setSelectedMid, setStatusSecond, selectedMtype } = useAppStore();
   const [busy, setBusy] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
 
@@ -104,8 +104,8 @@ export default function TabRakarn({ onOpenBrand, onOpenMid }) {
     try { await fn(); } finally { setBusy(null); }
   }, [busy]);
 
-  const { selectedCompany, selectedBrand } = useAppStore();
-  const reportCtx = { selectedBranch, dateRange, selectedBrand, user: currentUser };
+  const { selectedCompany } = useAppStore();
+  const reportCtx = { selectedBranch, dateRange, selectedMtype, user: currentUser };
 
   const handlePrint1 = () => runAsync('p1', async () => printLV1(lv1Rows, reportCtx));
   const handlePrint2 = () => runAsync('p2', async () => printLV1LV2(lv1Rows, reportCtx));

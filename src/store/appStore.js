@@ -13,7 +13,7 @@ export const useAppStore = create((set) => ({
   selectedCompany:  'MMM',
   selectedBranch:   DEFAULT_BRANCH,
   dateRange:        { from: DEFAULT_FROM, to: DEFAULT_TO },
-  selectedBrand:    '501',   // brand.id — default หมูสด (=501 in brand table)
+  selectedMtype:    '101',   // mtype.id — default เนื้อหมู (=101 in mtype table)
   selectedMid:      null,
   activeTab:        'rakarn',
   modalOpen:        null,
@@ -22,7 +22,7 @@ export const useAppStore = create((set) => ({
   setCompany:        (c)  => set({ selectedCompany: c, selectedBranch: DEFAULT_BRANCH, selectedMid: null }),
   setBranch:         (b)  => set({ selectedBranch: b }),
   setDateRange:      (dr) => set({ dateRange: dr }),
-  setSelectedBrand:  (id) => set({ selectedBrand: id, selectedMid: null }),
+  setSelectedMtype:  (id) => set({ selectedMtype: id, selectedMid: null }),
   setSelectedMid:    (mid)=> set({ selectedMid: mid }),
   setActiveTab:      (tab)=> set({ activeTab: tab }),
   setModalOpen:      (m)  => set({ modalOpen: m }),

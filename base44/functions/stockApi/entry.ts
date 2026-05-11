@@ -88,70 +88,68 @@ Deno.serve(async (req) => {
       return Response.json({ rows: result });
     }
 
-    // ── brands — Delphi: "ชนิด" picker (brand table, not mtype) ─────────────
-    // SELECT id, brandname FROM brand WHERE brandname LIKE ? ORDER BY id
-    if (action === 'brands') {
+    // ── mtypes — Delphi: Fsearch.pas table='mtype', column='typename' ────────
+    // SELECT id, typename FROM mtype WHERE typename LIKE '%xxx%' ORDER BY id
+    if (action === 'mtypes') {
       const q = params.q || '';
       const rows = await query(company, `
-        SELECT id, brandname AS name FROM brand
-        WHERE brandname LIKE ? ORDER BY id
+        SELECT id, typename AS name FROM mtype
+        WHERE typename LIKE ? ORDER BY id
       `, [`%${q}%`]);
       return Response.json({ rows });
     }
 
     // ── materials ─────────────────────────────────────────────────────────────
     if (action === 'materials') {
-      const { brand } = params;
+      const { mtype } = params;
       let sql = `SELECT mid, info FROM material WHERE cancelstatus = 0`;
       const args = [];
-      if (brand) { sql += ` AND brand = ?`; args.push(Number(brand)); }
+      if (mtype) { sql += ` AND typeid = ?`; args.push(Number(mtype)); }
       sql += ` ORDER BY mid`;
       const rows = await query(company, sql, args);
       return Response.json({ rows });
     }
 
-    // ── stockcard (LV1) — Delphi exact SQL ──────────────────────────────────
-    // SELECT t.brandname, a.mid, m.info,
+    // ── stockcard (LV1) — Delphi exact SQL (filter by mtype.typeid) ─────────
+    // SELECT t.typename, a.mid, m.info,
     //   SUM(IF(stockdate < ?, debit, 0)) carryd,
     //   SUM(IF(stockdate < ?, credit, 0)) carryc,
-    //   SUM(IF(stockdate BETWEEN ? AND ?, credit, 0)) Credit,
-    //   SUM(IF(stockdate BETWEEN ? AND ?, debit, 0)) debit
+    //   SUM(IF(stockdate BETWEEN ? AND ?, credit, 0)) credit_,
+    //   SUM(IF(stockdate BETWEEN ? AND ?, debit, 0)) debit_
     // FROM stockcard a
     // INNER JOIN material m ON a.mid = m.mid
-    // INNER JOIN brand t ON t.id = m.brand
-    // WHERE a.branchid = ? AND m.brand = ?
-    // GROUP BY mid, brandname
-    // carry = carryd - carryc ; total = (carryd-carryc) + debit - credit
+    // INNER JOIN mtype t ON t.id = m.typeid
+    // WHERE a.branchid = ? AND m.typeid = ?
+    // GROUP BY mid, typename
     if (action === 'stockcard') {
-      const { branch, brand, from: date1, to: date2 } = params;
-      if (!branch || !brand || !date1 || !date2) return Response.json({ error: 'branch, brand, from, to required' }, { status: 400 });
+      const { branch, mtype, from: date1, to: date2 } = params;
+      if (!branch || !mtype || !date1 || !date2) return Response.json({ error: 'branch, mtype, from, to required' }, { status: 400 });
 
-      const d1     = date1;           // "YYYY-MM-DD"
       const d1time = `${date1} 00:00:00`;
       const d2time = `${date2} 23:59:59`;
 
       const rows = await query(company, `
         SELECT
-          t.brandname,
+          t.typename,
           a.mid,
           m.info,
           SUM(IF(a.stockdate < ?, a.debit,  0)) AS carryd,
           SUM(IF(a.stockdate < ?, a.credit, 0)) AS carryc,
-          SUM(IF(a.stockdate BETWEEN ? AND ?, a.credit, 0)) AS credit,
-          SUM(IF(a.stockdate BETWEEN ? AND ?, a.debit,  0)) AS debit
+          SUM(IF(a.stockdate BETWEEN ? AND ?, a.credit, 0)) AS credit_,
+          SUM(IF(a.stockdate BETWEEN ? AND ?, a.debit,  0)) AS debit_
         FROM stockcard a
         INNER JOIN material m ON a.mid = m.mid
-        INNER JOIN brand t ON t.id = m.brand
-        WHERE a.branchid = ? AND m.brand = ?
-        GROUP BY a.mid, t.brandname
+        INNER JOIN mtype t ON t.id = m.typeid
+        WHERE a.branchid = ? AND m.typeid = ?
+        GROUP BY a.mid, t.typename
         ORDER BY a.mid
-      `, [d1time, d1time, d1time, d2time, d1time, d2time, Number(branch), Number(brand)]);
+      `, [d1time, d1time, d1time, d2time, d1time, d2time, Number(branch), Number(mtype)]);
 
       const result = rows.map(r => {
         const carryd = parseFloat(r.carryd)  || 0;
         const carryc = parseFloat(r.carryc)  || 0;
-        const debit  = parseFloat(r.debit)   || 0;
-        const credit = parseFloat(r.credit)  || 0;
+        const debit  = parseFloat(r.debit_)  || 0;
+        const credit = parseFloat(r.credit_) || 0;
         const carry  = carryd - carryc;
         const total  = carry + debit - credit;
         return { mid: r.mid, info: r.info, carry, debit, credit, total };

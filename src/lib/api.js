@@ -12,11 +12,11 @@ export const api = {
   schema:              (company)                                      => call('schema',                { company }),
   // branches: returns flat list with _group markers for section headers
   branches:            (company, opts = {})                           => call('branches',              { company, ...opts }),
-  // brands = "ชนิด" picker (brand table, not mtype)
-  brands:              (company, q = '')                              => call('brands',               { company, q }),
-  materials:           (company, brand)                               => call('materials',             { company, brand }),
-  // LV1: Delphi stockcard query — requires brand (not mtype)
-  stockcard:           (company, branch, brand, from, to)             => call('stockcard',             { company, branch, brand, from, to }),
+  // mtypes = "ชนิด" picker (mtype table — Fsearch.pas with table='mtype')
+  mtypes:              (company, q = '')                              => call('mtypes',                { company, q }),
+  materials:           (company, mtype)                               => call('materials',             { company, mtype }),
+  // LV1: Delphi stockcard query — filter by mtype.typeid
+  stockcard:           (company, branch, mtype, from, to)             => call('stockcard',             { company, branch, mtype, from, to }),
   // LV2: movements grouped by Abill (SUBSTRING(billno,1,2))
   movements:           (company, branch, mid, from, to)               => call('movements',             { company, branch, mid, from, to }),
   // LV7: FIFO lot grid — pass branchcode for POS.material_{branchcode}

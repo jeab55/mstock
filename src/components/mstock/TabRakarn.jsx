@@ -35,7 +35,7 @@ const LV7_COLS = [
   { key: 'cost',   label: 'Cost',   width: 90, align: 'right' },
 ];
 
-export default function TabRakarn({ onOpenBrand, onOpenMid }) {
+export default function TabRakarn({ onOpenBrand, onOpenMid, onOpenMsubtype }) {
   const { selectedBranch, dateRange, selectedMid, setSelectedMid, setStatusSecond, selectedMtype } = useAppStore();
   const [busy, setBusy] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
@@ -138,6 +138,7 @@ export default function TabRakarn({ onOpenBrand, onOpenMid }) {
   const noDataTip = !hasData ? 'ไม่มีข้อมูลให้พิมพ์/ส่งออก' : undefined;
   const toolbarButtons = [
     { icon: '📑', iconKey: '📑', label: 'ชนิด',    onClick: onOpenBrand },
+    { icon: '📋', iconKey: '📋', label: 'ประเภท',  onClick: onOpenMsubtype },
     { icon: '🖨', iconKey: '🖨', label: 'พิมพ์ 1',  onClick: handlePrint1,  disabled: !hasData || !!busy, loading: busy === 'p1', title: noDataTip },
     { icon: '🖨', iconKey: '🖨', label: 'พิมพ์ 2',  onClick: handlePrint2,  disabled: !hasData || !!busy, loading: busy === 'p2', title: noDataTip },
     { icon: '📤', iconKey: '📤', label: 'ส่งต่อ 1', onClick: handleExcel,   disabled: !hasData || !!busy, loading: busy === 'e1', title: noDataTip },

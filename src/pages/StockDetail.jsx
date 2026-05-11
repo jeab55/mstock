@@ -29,11 +29,11 @@ export default function StockDetail() {
   return (
     <div className="h-screen flex flex-col overflow-hidden" style={{ fontFamily: 'var(--font-tahoma)', minWidth: '1600px' }}>
       <Header />
-      <TopFilter onOpenBranch={() => setModalOpen('branch')} onOpenMsubtype={() => setModalOpen('brand')} />
+      <TopFilter onOpenBranch={() => setModalOpen('branch')} />
       <TabBar activeTab={activeTab} onTabChange={setActiveTab} />
 
       <div className="flex-1 flex flex-col overflow-hidden bg-white border border-gray-400 border-t-0">
-        {activeTab === 'rakarn'    && <TabRakarn onOpenBrand={() => setModalOpen('brand')} onOpenMid={() => setModalOpen('mid')} />}
+        {activeTab === 'rakarn'    && <TabRakarn onOpenBrand={() => setModalOpen('brand')} onOpenMid={() => setModalOpen('mid')} onOpenMsubtype={() => setModalOpen('brand')} />}
         {activeTab === 'chanid'    && <TabChanid />}
         {activeTab === 'chanidyoi' && <TabChanidYoi />}
         {activeTab === 'tabsheet6' && <TabSheet6 />}

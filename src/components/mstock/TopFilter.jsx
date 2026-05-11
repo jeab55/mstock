@@ -34,7 +34,7 @@ function weekRange(year, week) {
   return { from: fmt(mon), to: fmt(sun) };
 }
 
-export default function TopFilter({ onOpenBranch, onOpenMsubtype }) {
+export default function TopFilter({ onOpenBranch }) {
   const { selectedBranch, dateRange, setDateRange } = useAppStore();
 
   // Independent month/year state — not derived from dateRange so user overrides don't corrupt them
@@ -192,11 +192,6 @@ export default function TopFilter({ onOpenBranch, onOpenMsubtype }) {
         </button>
       </div>
 
-      {/* ประเภท */}
-      <div className="flex-shrink-0" style={{ width: 1, height: 28, background: '#ccc' }} />
-      <button onClick={onOpenMsubtype} style={btnTextStyle} title="เลือกประเภท">
-        📋 ประเภท
-      </button>
     </div>
   );
 }

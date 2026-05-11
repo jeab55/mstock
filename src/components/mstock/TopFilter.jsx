@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FolderOpen, ChevronLeft, ChevronRight, Equal } from 'lucide-react';
+import { FolderOpen, ChevronLeft, ChevronRight, Equal, ChevronDown } from 'lucide-react';
 import { useAppStore } from '../../store/appStore';
 
 const today = new Date();
@@ -34,7 +34,7 @@ function weekRange(year, week) {
   return { from: fmt(mon), to: fmt(sun) };
 }
 
-export default function TopFilter({ onOpenBranch }) {
+export default function TopFilter({ onOpenBranch, onOpenMsubtype }) {
   const { selectedBranch, dateRange, setDateRange } = useAppStore();
 
   // Independent month/year state — not derived from dateRange so user overrides don't corrupt them
@@ -46,7 +46,7 @@ export default function TopFilter({ onOpenBranch }) {
 
   const applyMonth = (m, y) => {
     const first = new Date(y, m, 1);
-    const last  = new Date(y, m + 1, 0); // day 0 of next month = last day of this month
+    const last  = new Date(y, m + 1, 0);
     setDateRange({ from: fmt(first), to: fmt(last) });
   };
 
@@ -61,11 +61,27 @@ export default function TopFilter({ onOpenBranch }) {
   };
 
   const setWeek = (w) => {
-    const range = weekRange(selYear, w);
+    const clamped = Math.max(1, Math.min(53, w));
+    const range = weekRange(selYear, clamped);
     setDateRange(range);
   };
 
-  const shiftDate1 = (delta) => {
+  const shiftWeek = (delta) => {
+    let newWeek = curWeek + delta;
+    let newYear = selYear;
+    if (newWeek < 1) {
+      newYear = selYear - 1;
+      newWeek = 53;
+    } else if (newWeek > 53) {
+      newYear = selYear + 1;
+      newWeek = 1;
+    }
+    setSelYear(newYear);
+    const range = weekRange(newYear, newWeek);
+    setDateRange(range);
+  };
+
+  const shiftDateDay = (delta) => {
     const d = parseDate(dateRange.from);
     d.setDate(d.getDate() + delta);
     setDateRange({ ...dateRange, from: fmt(d) });
@@ -78,61 +94,109 @@ export default function TopFilter({ onOpenBranch }) {
   const handleFrom = (e) => setDateRange({ ...dateRange, from: e.target.value });
   const handleTo   = (e) => setDateRange({ ...dateRange, to: e.target.value });
 
-  const btnStyle = {
+  const btnIconStyle = {
     background: '#d4d0c8',
-    border: '1px solid',
-    borderColor: '#ffffff #808080 #808080 #ffffff',
-    width: 24, height: 24,
+    border: '1px solid #999',
+    width: 28, height: 28,
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     cursor: 'pointer', flexShrink: 0,
     padding: 0,
+    fontSize: 14,
   };
-  const labelStyle = { fontSize: 12, whiteSpace: 'nowrap', flexShrink: 0, fontFamily: 'var(--font-tahoma)' };
-  const inputStyle = { fontSize: 12, border: '1px solid #888', background: '#fff', height: 22, fontFamily: 'var(--font-tahoma)' };
+  const btnTextStyle = {
+    background: '#d4d0c8',
+    border: '1px solid #999',
+    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
+    cursor: 'pointer', flexShrink: 0,
+    padding: '0 8px',
+    fontSize: 13,
+    height: 28,
+    fontFamily: 'var(--font-tahoma)',
+  };
+  const labelStyle = { fontSize: 13, whiteSpace: 'nowrap', flexShrink: 0, fontFamily: 'var(--font-tahoma)' };
+  const selectStyle = { fontSize: 13, border: '1px solid #999', background: '#fff', height: 28, fontFamily: 'var(--font-tahoma)', padding: '0 2px', cursor: 'pointer' };
+  const inputDateStyle = { fontSize: 13, border: '1px solid #999', background: '#fff', height: 28, fontFamily: 'var(--font-tahoma)', textAlign: 'center', padding: '0 4px' };
 
   return (
-    <div className="flex items-center gap-1 px-2 flex-shrink-0 overflow-hidden" style={{ background: '#F9CBAC', height: 40 }}>
-      {/* Branch label */}
-      <div className="px-1.5 border border-gray-400 truncate flex-shrink-0" style={{ background: '#FFFFE1', maxWidth: 150, minWidth: 80, height: 22, lineHeight: '22px', fontSize: 12 }}
-        title={selectedBranch.name}>
-        {selectedBranch.name}
+    <div className="flex items-center gap-2 px-3 flex-shrink-0 overflow-x-auto" style={{ background: '#F9CBAC', height: 40 }}>
+      {/* Branch */}
+      <div className="flex items-center gap-1.5 flex-shrink-0">
+        <div className="px-2 truncate flex-shrink-0" style={{ background: '#FFFFE1', maxWidth: 140, minWidth: 70, height: 28, lineHeight: '28px', fontSize: 13, border: '1px solid #999' }}
+          title={selectedBranch.name}>
+          {selectedBranch.name}
+        </div>
+        <button onClick={onOpenBranch} style={btnTextStyle} title="เปลี่ยนสาขา">
+          <FolderOpen className="w-4 h-4" /> สาขา
+        </button>
       </div>
-      <button onClick={onOpenBranch} style={{ ...btnStyle, width: 'auto', padding: '0 6px', gap: 3, fontSize: 12 }}>
-        <FolderOpen className="w-3 h-3" /> สาขา
-      </button>
 
-      <div className="flex-shrink-0" style={{ width: 1, height: 24, background: '#808080', margin: '0 2px' }} />
+      <div className="flex-shrink-0" style={{ width: 1, height: 28, background: '#ccc' }} />
 
       {/* สัปดาห์ */}
-      <span style={labelStyle}>สัปดาห์</span>
-      <button style={btnStyle} onClick={() => setWeek(Math.max(1, curWeek - 1))}><ChevronLeft className="w-3 h-3" /></button>
-      <input type="number" style={{ ...inputStyle, width: 34, textAlign: 'center', padding: '0 2px' }}
-        value={curWeek} onChange={e => setWeek(Number(e.target.value))} />
-      <button style={btnStyle} onClick={() => setWeek(curWeek + 1)}><ChevronRight className="w-3 h-3" /></button>
+      <div className="flex items-center gap-1.5 flex-shrink-0">
+        <span style={labelStyle}>สัปดาห์</span>
+        <button style={btnIconStyle} onClick={() => shiftWeek(-1)} title="สัปดาห์ก่อนหน้า">
+          <ChevronLeft className="w-4 h-4" />
+        </button>
+        <input type="number" style={{ ...selectStyle, width: 40, textAlign: 'center' }}
+          value={curWeek} onChange={e => setWeek(Number(e.target.value))} />
+        <button style={btnIconStyle} onClick={() => shiftWeek(1)} title="สัปดาห์ถัดไป">
+          <ChevronRight className="w-4 h-4" />
+        </button>
+      </div>
+
+      <div className="flex-shrink-0" style={{ width: 1, height: 28, background: '#ccc' }} />
 
       {/* เดือน */}
-      <span style={labelStyle}>เดือน</span>
-      <select style={{ ...inputStyle, padding: '0 2px' }} value={selMonth} onChange={e => handleMonthChange(Number(e.target.value))}>
-        {MONTH_NAMES.map((mn, i) => <option key={i} value={i}>{mn}</option>)}
-      </select>
+      <div className="flex items-center gap-1.5 flex-shrink-0">
+        <span style={labelStyle}>เดือน</span>
+        <div style={{ position: 'relative', display: 'flex' }}>
+          <select style={{ ...selectStyle, appearance: 'none', paddingRight: 24 }} value={selMonth} onChange={e => handleMonthChange(Number(e.target.value))}>
+            {MONTH_NAMES.map((mn, i) => <option key={i} value={i}>{mn}</option>)}
+          </select>
+          <ChevronDown className="w-3 h-3" style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#555' }} />
+        </div>
+      </div>
 
       {/* ปี */}
-      <span style={labelStyle}>ปี</span>
-      <select style={{ ...inputStyle, padding: '0 2px', width: 56 }} value={selYear} onChange={e => handleYearChange(Number(e.target.value))}>
-        {[2024,2025,2026,2027].map(y => <option key={y} value={y}>{y}</option>)}
-      </select>
+      <div className="flex items-center gap-1.5 flex-shrink-0">
+        <span style={labelStyle}>ปี</span>
+        <div style={{ position: 'relative', display: 'flex' }}>
+          <select style={{ ...selectStyle, appearance: 'none', paddingRight: 24, width: 64 }} value={selYear} onChange={e => handleYearChange(Number(e.target.value))}>
+            {[2024,2025,2026,2027].map(y => <option key={y} value={y}>{y}</option>)}
+          </select>
+          <ChevronDown className="w-3 h-3" style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#555' }} />
+        </div>
+      </div>
 
-      <div className="flex-shrink-0" style={{ width: 1, height: 24, background: '#808080', margin: '0 2px' }} />
+      <div className="flex-shrink-0" style={{ width: 1, height: 28, background: '#ccc' }} />
 
       {/* วันที่ */}
-      <span style={labelStyle}>วันที่</span>
-      <input type="date" value={dateRange.from} onChange={handleFrom} style={{ ...inputStyle, width: 112, textAlign: 'center', padding: '0 2px' }} />
-      <span style={labelStyle}>ถึง</span>
-      <input type="date" value={dateRange.to} onChange={handleTo} style={{ ...inputStyle, width: 112, textAlign: 'center', padding: '0 2px' }} />
+      <div className="flex items-center gap-1.5 flex-shrink-0">
+        <span style={labelStyle}>วันที่</span>
+        <input type="date" value={dateRange.from} onChange={handleFrom} style={{ ...inputDateStyle, width: 120 }} />
+        <span style={labelStyle}>ถึง</span>
+        <input type="date" value={dateRange.to} onChange={handleTo} style={{ ...inputDateStyle, width: 120 }} />
+      </div>
 
-      <button style={btnStyle} onClick={() => shiftDate1(-1)}><ChevronLeft className="w-3 h-3" /></button>
-      <button style={btnStyle} onClick={() => shiftDate1(1)}><ChevronRight className="w-3 h-3" /></button>
-      <button style={btnStyle} onClick={setEqualDates}><Equal className="w-3 h-3" /></button>
+      {/* Date nav */}
+      <div className="flex items-center gap-1 flex-shrink-0">
+        <button style={btnIconStyle} onClick={() => shiftDateDay(-1)} title="วันก่อนหน้า">
+          <ChevronLeft className="w-4 h-4" />
+        </button>
+        <button style={btnIconStyle} onClick={() => shiftDateDay(1)} title="วันถัดไป">
+          <ChevronRight className="w-4 h-4" />
+        </button>
+        <button style={btnIconStyle} onClick={setEqualDates} title="ตั้ง from = to">
+          <Equal className="w-4 h-4" />
+        </button>
+      </div>
+
+      {/* ประเภท */}
+      <div className="flex-shrink-0" style={{ width: 1, height: 28, background: '#ccc' }} />
+      <button onClick={onOpenMsubtype} style={btnTextStyle} title="เลือกประเภท">
+        📋 ประเภท
+      </button>
     </div>
   );
 }

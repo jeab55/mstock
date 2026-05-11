@@ -29,7 +29,7 @@ export default function StockDetail() {
   return (
     <div className="h-screen flex flex-col overflow-hidden" style={{ fontFamily: 'var(--font-tahoma)', minWidth: '1600px' }}>
       <Header />
-      <TopFilter onOpenBranch={() => setModalOpen('branch')} />
+      <TopFilter onOpenBranch={() => setModalOpen('branch')} onOpenMsubtype={() => setModalOpen('brand')} />
       <TabBar activeTab={activeTab} onTabChange={setActiveTab} />
 
       <div className="flex-1 flex flex-col overflow-hidden bg-white border border-gray-400 border-t-0">

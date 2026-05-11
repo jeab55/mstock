@@ -130,7 +130,7 @@ export function useLV2() {
 
           for (const m of g) {
             const adateStr = String(m.stockdate || m.adate || '');
-            const dateStr  = adateStr.slice(5, 10).replace('-', '/');
+            const dateStr  = adateStr.slice(5, 10).replace('-', '/') + '/' + adateStr.slice(0, 4);
             const d = parseFloat(m.debit)  || 0;
             const c = parseFloat(m.credit) || 0;
             const cost = parseFloat(m.cost) || 0;

@@ -168,9 +168,9 @@ Deno.serve(async (req) => {
       return Response.json({ rows: result });
     }
 
-    // ── movements (LV2) — Delphi exact SQL ──────────────────────────────────
+    // ── movements (LV2) — Delphi exact SQL + cost, price3 ──────────────────────────────────
     if (action === 'movements') {
-      const { branch, mid, brand, from: date1, to: date2 } = params;
+      const { branch, mid, brand, branchcode, from: date1, to: date2 } = params;
       if (!branch || !mid || !date1 || !date2) return Response.json({ error: 'branch, mid, from, to required' }, { status: 400 });
 
       const d1time = `${date1} 00:00:00`;
@@ -179,10 +179,11 @@ Deno.serve(async (req) => {
 
       let where = `WHERE a.stockdate BETWEEN ? AND ? AND a.branchid = ? AND a.mid = ?`;
       if (brand) {
-        where = `WHERE a.stockdate BETWEEN ? AND ? AND a.branchid = ? AND a.mid = ? AND m.brand = ?`;
+        where = `WHERE a.stockdate BETWEEN ? AND ? AND a.branchid = ? AND a.mid = ? AND gm.brand = ?`;
         args.push(Number(brand));
       }
 
+      // Get cost from material, price3 from POS.material_{branchcode} if available
       const rows = await query(company, `
         SELECT
           SUBSTRING(a.billno, 1, 2) AS abill,
@@ -190,12 +191,15 @@ Deno.serve(async (req) => {
           a.stockdate,
           a.debit,
           a.credit,
-          a.REF AS T
+          a.REF AS T,
+          gm.cost,
+          COALESCE(pm.price3, gm.price3, 0) AS sale_price
         FROM stockcard a
-        INNER JOIN material m ON a.mid = m.mid
-        INNER JOIN mtype t ON t.id = m.typeid
+        INNER JOIN material gm ON a.mid = gm.mid
+        LEFT JOIN ${branchcode ? `POS.material_${branchcode}` : 'material'} pm ON a.mid = pm.mid
+        INNER JOIN mtype t ON t.id = gm.typeid
         ${where}
-        ORDER BY abill, a.stockdate
+        ORDER BY a.billno, a.stockdate
       `, args);
 
       return Response.json({ rows });

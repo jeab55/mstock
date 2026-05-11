@@ -20,7 +20,7 @@ export const api = {
   // LV1: Delphi stockcard query — filter by mtype.typeid and optional brand.id
   stockcard:           (company, branch, mtype, brand, from, to)      => call('stockcard',             { company, branch, mtype, brand, from, to }),
   // LV2: movements grouped by Abill (SUBSTRING(billno,1,2))
-  movements:           (company, branch, mid, brand, from, to)        => call('movements',             { company, branch, mid, brand, from, to }),
+  movements:           (company, branch, branchcode, mid, brand, from, to) => call('movements',       { company, branch, branchcode, mid, brand, from, to }),
   // LV7: FIFO lot grid — pass branchcode for POS.material_{branchcode}
   lots:                (company, branch, mid, branchcode)             => call('lots',                  { company, branch, mid, branchcode }),
   // TabChanid summary views

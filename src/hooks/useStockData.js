@@ -51,30 +51,46 @@ export function useLV1() {
 }
 
 // ─── useLV2 ──────────────────────────────────────────────────────────────────
-// Delphi LV2: movements for one mid grouped by Abill (SUBSTR(billno,1,2))
+// Delphi LV2: movements for one mid grouped by Abill (SUBSTR(billno,1,2)) with value calc + subtotals
 export function useLV2() {
   const { selectedCompany, selectedBranch, dateRange, selectedMid, selectedBrand } = useAppStore();
   const [rows, setRows]       = useState([]);
+  const [footerData, setFooterData] = useState(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!selectedMid) { setRows([]); return; }
-    const company  = selectedCompany;
-    const branchId = selectedBranch.id;
-    const from     = dateRange.from;
-    const to       = dateRange.to;
-    const mid      = selectedMid;
-    const brand    = selectedBrand;
+    if (!selectedMid) { setRows([]); setFooterData(null); return; }
+    const company    = selectedCompany;
+    const branchId   = selectedBranch.id;
+    const branchcode = selectedBranch.code;
+    const from       = dateRange.from;
+    const to         = dateRange.to;
+    const mid        = selectedMid;
+    const brand      = selectedBrand;
 
     let cancelled = false;
     setLoading(true);
 
-    api.movements(company, branchId, mid, brand, from, to)
+    api.movements(company, branchId, branchcode, mid, brand, from, to)
       .then(data => {
         if (cancelled) return;
         const moves = data.rows || [];
 
-        // Group by abill in order of appearance (server already sorted by abill, stockdate)
+        // Helper: calc value by doctype
+        const calcValue = (row) => {
+          const ab = row.abill.toUpperCase();
+          const cost = parseFloat(row.cost) || 0;
+          const salePrice = parseFloat(row.sale_price) || 0;
+          const deb = parseFloat(row.debit) || 0;
+          const cred = parseFloat(row.credit) || 0;
+
+          if (ab === 'CR' || ab === 'AP' || ab === 'CT') return deb * cost;
+          if (ab === 'OS') return (salePrice - cost) * cred; // profit
+          if (ab === 'WS') return -(cred * cost); // loss, negative
+          return (deb - cred) * cost; // default
+        };
+
+        // Group by abill
         const groups = {};
         const order  = [];
         for (const m of moves) {
@@ -84,29 +100,89 @@ export function useLV2() {
         }
 
         const result = [];
+        let totalIncome = 0, totalCost = 0, totalProfit = 0;
+
         for (const ab of order) {
-          const g = groups[ab];
-          result.push({ abill: ':' + ab, billno: '', adate: '', debit: '', credit: '', at: '' });
-          let totalD = 0, totalC = 0;
+          const g = g = groups[ab];
+          result.push({ _isGroupHeader: true, abill: ':' + ab, billno: '', adate: '', debit: '', credit: '', at: '', value: '' });
+
+          let groupQtyD = 0, groupQtyC = 0, groupValue = 0, groupSaleTotal = 0, groupCostTotal = 0, groupProfitTotal = 0;
+
           for (const m of g) {
             const adateStr = String(m.stockdate || m.adate || '');
             const dateStr  = adateStr.slice(5, 10).replace('-', '/');
             const timeStr  = adateStr.length > 10 ? adateStr.slice(11, 16) : '';
             const d = parseFloat(m.debit)  || 0;
             const c = parseFloat(m.credit) || 0;
-            totalD += d; totalC += c;
+            const cost = parseFloat(m.cost) || 0;
+            const salePrice = parseFloat(m.sale_price) || 0;
+
+            let value = calcValue(m);
+            groupValue += value;
+
+            // Track for OS special subtotal
+            if (ab === 'OS') {
+              groupSaleTotal += salePrice * c;
+              groupCostTotal += cost * c;
+              groupProfitTotal += value;
+              totalIncome += salePrice * c;
+              totalCost += cost * c;
+              totalProfit += value;
+            } else {
+              totalIncome += value;
+              if (ab !== 'WS') totalCost += d * cost;
+            }
+
+            groupQtyD += d;
+            groupQtyC += c;
+
             result.push({
+              _isRow: true,
               abill:  ab,
               billno: m.billno,
               adate:  dateStr + (timeStr ? ' ' + timeStr : ''),
               debit:  d > 0 ? d : '',
               credit: c > 0 ? c : '',
               at:     m.T || m.refinfo || '',
+              value,
+              cost,
+              salePrice,
             });
           }
-          result.push({ abill: '-', billno: '', adate: '', debit: totalD > 0 ? totalD : '', credit: totalC > 0 ? totalC : '', at: '' });
+
+          // Subtotal row
+          if (ab === 'OS') {
+            result.push({
+              _isSubtotal: true,
+              abill: '-',
+              billno: `ขาย=${groupSaleTotal.toFixed(2)} บาท | ต้นทุน=${groupCostTotal.toFixed(2)} บาท | กำไร=${groupProfitTotal.toFixed(2)} บาท`,
+              adate: '',
+              debit: groupQtyC,
+              credit: '',
+              at: '',
+              value: groupProfitTotal,
+            });
+          } else {
+            result.push({
+              _isSubtotal: true,
+              abill: '-',
+              billno: '',
+              adate: '',
+              debit: groupQtyD > 0 ? groupQtyD : (groupQtyC > 0 ? groupQtyC : ''),
+              credit: '',
+              at: '',
+              value: groupValue,
+            });
+          }
         }
+
         setRows(result);
+        setFooterData({
+          totalIncome,
+          totalCost,
+          totalProfit,
+          roi: totalCost > 0 ? (totalProfit / totalCost * 100) : 0,
+        });
       })
       .catch(e => {
         if (cancelled) return;
@@ -116,9 +192,9 @@ export function useLV2() {
       .finally(() => { if (!cancelled) setLoading(false); });
 
     return () => { cancelled = true; };
-  }, [selectedCompany, selectedBranch.id, dateRange.from, dateRange.to, selectedMid, selectedBrand]);
+  }, [selectedCompany, selectedBranch.id, selectedBranch.code, dateRange.from, dateRange.to, selectedMid, selectedBrand]);
 
-  return { rows, loading };
+  return { rows, footerData, loading };
 }
 
 // ─── useLots ─────────────────────────────────────────────────────────────────

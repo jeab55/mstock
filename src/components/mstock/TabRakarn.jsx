@@ -24,6 +24,7 @@ const LV2_COLS = [
   { key: 'debit',  label: 'Debit+',  width: 90, align: 'right' },
   { key: 'credit', label: 'Credit-', width: 90, align: 'right' },
   { key: 'at',     label: '@T',      width: 160 },
+  { key: 'value',  label: 'มูลค่า (บาท)', width: 100, align: 'right' },
 ];
 
 const LV7_COLS = [
@@ -54,7 +55,7 @@ export default function TabRakarn({ onOpenBrand, onOpenMid, onOpenMsubtype }) {
 
   // ── Real API data ──────────────────────────────────────────────────────────
   const { rows: lv1Rows, loading: lv1Loading } = useLV1();
-  const { rows: lv2Rows, loading: lv2Loading } = useLV2();
+  const { rows: lv2Rows, footerData, loading: lv2Loading } = useLV2();
   const { lots, salePrice, loading: lotsLoading } = useLots();
 
   const lv7Rows = useMemo(() => lots.map((l, i) => ({
@@ -193,6 +194,7 @@ export default function TabRakarn({ onOpenBrand, onOpenMid, onOpenMsubtype }) {
             subHeaderRow={lv2Header.subHeader}
             onRowDoubleClick={handleLv2DblClick}
             className="h-full"
+            footerData={footerData}
           />
         </div>
       </div>

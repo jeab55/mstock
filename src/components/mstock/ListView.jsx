@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
 
-function getRowStyle(firstCol) {
+function getRowStyle(firstCol, isSubtotal, isGroupHeader) {
+  if (isGroupHeader) return { bg: '#B1E4F5', color: '#000000', bold: false, isSection: true };
+  if (isSubtotal) return { bg: '#FFF9C4', color: '#000000', bold: true, isSubtotal: true };
+  
   const val = String(firstCol || '');
   if (val === '-SUM' || val === ':sum' || val === 'sum' || val === 'SUM') return { bg: '#8EA583', color: '#ffffff', bold: true };
   if (val.startsWith(':')) return { bg: '#B1E4F5', color: '#000000', bold: false, isSection: true };
   if (val.startsWith('+') || val.startsWith('<')) return { bg: '#C0DCC0', color: '#000000', bold: false };
-  if (val === '-') return { bg: '#ffffff', color: '#000000', bold: false, isSubtotal: true }; // subtotal: numbers red per-cell
+  if (val === '-') return { bg: '#ffffff', color: '#000000', bold: false, isSubtotal: true };
   if (val.startsWith('-') && val.length > 1) return { bg: '#ffffff', color: '#ff0000', bold: false };
   if (val.startsWith('[')) return { bg: '#BFF0F7', color: '#000000', bold: false };
   return { bg: '#ffffff', color: '#000000', bold: false };
@@ -18,7 +21,7 @@ function formatNum(v) {
   return n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-export default function ListView({ columns, rows, headerRow, subHeaderRow, onRowClick, onRowDoubleClick, selectedIndex, className = '', rowStyleFn }) {
+export default function ListView({ columns, rows, headerRow, subHeaderRow, onRowClick, onRowDoubleClick, selectedIndex, className = '', rowStyleFn, footerData }) {
   const [hoveredIdx, setHoveredIdx] = useState(-1);
 
   return (
@@ -80,11 +83,12 @@ export default function ListView({ columns, rows, headerRow, subHeaderRow, onRow
       <div className="flex-1 overflow-auto">
         {rows.map((row, ri) => {
           const firstVal = row[columns[0]?.key];
-          const style = getRowStyle(firstVal);
+          const isGroupHeader = row._isGroupHeader;
+          const isSubtotal = row._isSubtotal;
+          const style = getRowStyle(firstVal, isSubtotal, isGroupHeader);
           const isSelected = selectedIndex === ri;
           const isHovered = hoveredIdx === ri && !isSelected;
 
-          // Custom row style override (e.g. lot coloring)
           const customStyle = rowStyleFn ? rowStyleFn(row, ri) : null;
 
           let bgColor = customStyle?.bg || style.bg || '#ffffff';
@@ -109,12 +113,20 @@ export default function ListView({ columns, rows, headerRow, subHeaderRow, onRow
               {columns.map((col, ci) => {
                 const val = row[col.key];
                 const isNumeric = typeof val === 'number';
-                const display = col.align === 'right' && isNumeric ? formatNum(val) : (val !== undefined && val !== null ? String(val) : '');
-                // Red: negative numbers OR subtotal row numeric cells
-                const isRed = !isSelected && (
-                  (isNumeric && val < 0) ||
-                  (style.isSubtotal && isNumeric && val !== 0)
-                );
+                let display = val !== undefined && val !== null ? String(val) : '';
+                
+                // Format numeric columns
+                if (col.align === 'right' && isNumeric) {
+                  display = formatNum(val);
+                }
+                
+                // Color value column
+                let valueColor = undefined;
+                if (col.key === 'value' && isNumeric && !isSelected) {
+                  if (val < 0) valueColor = '#ff0000';
+                  else if (val > 0) valueColor = '#008000';
+                }
+
                 return (
                   <div
                     key={ci}
@@ -124,7 +136,7 @@ export default function ListView({ columns, rows, headerRow, subHeaderRow, onRow
                       minWidth: col.width,
                       textAlign: col.align || 'left',
                       borderBottom: '1px solid #f0f0f0',
-                      color: isRed ? '#ff0000' : undefined,
+                      color: valueColor || undefined,
                       overflow: 'hidden',
                       whiteSpace: 'nowrap',
                       textOverflow: 'ellipsis',
@@ -141,6 +153,13 @@ export default function ListView({ columns, rows, headerRow, subHeaderRow, onRow
           );
         })}
       </div>
+
+      {/* Footer */}
+      {footerData && (
+        <div className="flex-shrink-0" style={{ background: '#f0f0f0', borderTop: '1px solid #999', padding: '4px 8px', fontSize: '12px', fontFamily: 'var(--font-tahoma)' }}>
+          รวมรับเข้า: {footerData.totalIncome.toFixed(2)} บาท | รวมขาย: {footerData.totalCost.toFixed(2)} บาท | กำไรรวม: {footerData.totalProfit.toFixed(2)} บาท (ROI: {footerData.roi.toFixed(1)}%)
+        </div>
+      )}
     </div>
   );
 }

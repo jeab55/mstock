@@ -38,7 +38,7 @@ export default function StockDetail() {
       <TabBar activeTab={activeTab} onTabChange={setActiveTab} />
 
       <div className="flex-1 flex flex-col overflow-hidden bg-white border border-gray-400 border-t-0">
-        {activeTab === 'rakarn'    && <TabRakarn onOpenBrand={() => setModalOpen('brand')} onOpenMid={() => setModalOpen('mid')} onOpenMsubtype={() => setModalOpen('brand')} />}
+        {activeTab === 'rakarn'    && <TabRakarn onOpenBrand={() => setModalOpen('brand')} onOpenMid={() => setModalOpen('mid')} onOpenMsubtype={() => setModalOpen('subtype')} />}
         {activeTab === 'chanid'    && <TabChanid />}
         {activeTab === 'chanidyoi' && <TabChanidYoi />}
         {activeTab === 'tabsheet6' && <TabSheet6 />}

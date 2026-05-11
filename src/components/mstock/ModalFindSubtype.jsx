@@ -38,7 +38,7 @@ export default function ModalFindSubtype({ onClose }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.4)' }}>
       <div className="bg-[#d4d0c8] border-2 shadow-lg flex flex-col" style={{ width: 460, height: 440, borderColor: '#808080' }}>
         <div className="h-7 flex items-center justify-between px-2 text-white text-xs flex-shrink-0" style={{ background: '#7c8db0' }}>
-          <span>FsubtypePicker — เลือกประเภทสินค้า</span>
+          <span>BrandPicker — เลือกประเภท/ชนิดย่อย</span>
           <button onClick={onClose} className="hover:bg-red-600 px-1"><X className="w-3 h-3" /></button>
         </div>
         <div className="flex items-center gap-1 px-2 py-1 flex-shrink-0" style={{ background: '#c0dcc0' }}>

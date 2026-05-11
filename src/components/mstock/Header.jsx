@@ -12,6 +12,11 @@ export default function Header() {
   const { selectedCompany, setCompany } = useAppStore();
   const [open, setOpen] = useState(false);
 
+  const handleSelect = (companyId) => {
+    setCompany(companyId);   // resets branch + clears mid → all hooks re-fetch automatically
+    setOpen(false);
+  };
+
   return (
     <div className="h-12 flex items-center justify-between px-3" style={{ background: '#2c2c2c' }}>
       <div className="flex items-center gap-2">
@@ -27,14 +32,14 @@ export default function Header() {
             {selectedCompany} <ChevronDown className="w-3 h-3" />
           </button>
           {open && (
-            <div className="absolute right-0 top-full mt-1 bg-white border border-gray-400 shadow-md z-50">
+            <div className="absolute right-0 top-full mt-1 bg-white border border-gray-400 shadow-md z-50 min-w-max">
               {COMPANIES.map(c => (
                 <div
-                  key={c}
-                  className="px-4 py-1 text-xs cursor-pointer hover:bg-blue-600 hover:text-white"
-                  onClick={() => { setCompany(c); setOpen(false); }}
+                  key={c.id}
+                  className={`px-4 py-1.5 text-xs cursor-pointer whitespace-nowrap ${c.id === selectedCompany ? 'bg-blue-600 text-white' : 'hover:bg-blue-600 hover:text-white'}`}
+                  onClick={() => handleSelect(c.id)}
                 >
-                  {c}
+                  {c.label}
                 </div>
               ))}
             </div>

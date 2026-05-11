@@ -105,9 +105,7 @@ export default function ModalFindType({ onClose }) {
 
         {/* Status bar */}
         <div className="h-5 flex items-center px-2 text-xs text-gray-600 border-t border-gray-400 flex-shrink-0" style={{ background: '#d4d0c8' }}>
-          {selectedMtype
-            ? `ชนิดที่เลือก: ${selectedMtype} — ${MTYPES.find(m => m.id === selectedMtype)?.name || ''}`
-            : 'แสดงทั้งหมด'}
+          select id, typename from mtype where typename like '%{search || ''}%'
         </div>
       </div>
     </div>

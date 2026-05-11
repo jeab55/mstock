@@ -9,13 +9,13 @@ import TabSheet6 from '../components/mstock/TabSheet6';
 import StatusBar from '../components/mstock/StatusBar';
 import ModalFindBrand from '../components/mstock/ModalFindBrand';
 import ModalFindBranch from '../components/mstock/ModalFindBranch';
-import ModalBrandPicker from '../components/mstock/ModalBrandPicker';
+import ModalFindSubtype from '../components/mstock/ModalFindSubtype';
 import ModalMidPicker from '../components/mstock/ModalMidPicker';
 import { useAppStore } from '../store/appStore';
 import { useBranches } from '../hooks/useStockData';
 
 export default function StockDetail() {
-  const { activeTab, setActiveTab, modalOpen, setModalOpen, brandPickerOpen, setBrandPickerOpen } = useAppStore();
+  const { activeTab, setActiveTab, modalOpen, setModalOpen } = useAppStore();
 
   // Auto-load branches + set default branch on mount
   useBranches();
@@ -38,7 +38,7 @@ export default function StockDetail() {
       <TabBar activeTab={activeTab} onTabChange={setActiveTab} />
 
       <div className="flex-1 flex flex-col overflow-hidden bg-white border border-gray-400 border-t-0">
-        {activeTab === 'rakarn'    && <TabRakarn onOpenBrand={() => setModalOpen('brand')} onOpenMid={() => setModalOpen('mid')} onOpenBrandPicker={() => setBrandPickerOpen(true)} />}
+        {activeTab === 'rakarn'    && <TabRakarn onOpenBrand={() => setModalOpen('brand')} onOpenMid={() => setModalOpen('mid')} onOpenMsubtype={() => setModalOpen('subtype')} />}
         {activeTab === 'chanid'    && <TabChanid />}
         {activeTab === 'chanidyoi' && <TabChanidYoi />}
         {activeTab === 'tabsheet6' && <TabSheet6 />}
@@ -48,8 +48,8 @@ export default function StockDetail() {
 
       {modalOpen === 'branch' && <ModalFindBranch onClose={() => setModalOpen(null)} />}
       {modalOpen === 'brand'  && <ModalFindBrand  onClose={() => setModalOpen(null)} />}
+      {modalOpen === 'subtype' && <ModalFindSubtype onClose={() => setModalOpen(null)} />}
       {modalOpen === 'mid'    && <ModalMidPicker   onClose={() => setModalOpen(null)} />}
-      {brandPickerOpen && <ModalBrandPicker onClose={() => setBrandPickerOpen(false)} />}
     </div>
   );
 }

@@ -121,7 +121,7 @@ export default function TopFilter({ onOpenBranch }) {
     <div className="flex items-center gap-2 px-3 flex-shrink-0 overflow-x-auto" style={{ background: '#F9CBAC', height: 40 }}>
       {/* Branch */}
       <div className="flex items-center gap-1.5 flex-shrink-0">
-        <div className="px-2 truncate flex-shrink-0" style={{ background: '#FFFFE1', maxWidth: 140, minWidth: 70, height: 28, lineHeight: '28px', fontSize: 13, border: '1px solid #999' }}
+        <div className="px-2 flex-shrink" style={{ background: '#FFFFE1', width: 240, minWidth: 180, height: 28, lineHeight: '28px', fontSize: 13, fontWeight: 'bold', border: '1px solid #999', whiteSpace: 'nowrap', overflow: 'visible' }}
           title={selectedBranch.name}>
           {selectedBranch.name}
         </div>

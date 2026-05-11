@@ -114,6 +114,7 @@ export default function ModalFindSubtype({ onClose }) {
                 className={`flex flex-shrink-0 ${isSUM ? 'font-bold' : 'cursor-pointer'}`}
                 style={{ background: bg, color }}
                 onClick={() => handleSelect(row)}
+                onDoubleClick={() => handleSelect(row)}
                 onMouseEnter={() => setHovered(ri)}
                 onMouseLeave={() => setHovered(-1)}>
                 {COLS.map((col, ci) => (

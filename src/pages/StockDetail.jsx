@@ -43,7 +43,7 @@ export default function StockDetail() {
         {activeTab === 'rakarn'    && <TabRakarn onOpenBrand={() => setModalOpen('brand')} onOpenMid={() => setModalOpen('mid')} onOpenMsubtype={() => setModalOpen('subtype')} onOpenFindMids={() => setModalOpen('findmids')} />}
         {activeTab === 'chanid'    && <TabChanid />}
         {activeTab === 'chanidyoi' && <TabChanidYoi />}
-        {activeTab === 'tabsheet6' && <TabSheet6 />}
+        {activeTab === 'tabsheet6' && <TabSheet6 onOpenFindMids={() => setModalOpen('findmids')} />}
       </div>
 
       <StatusBar />

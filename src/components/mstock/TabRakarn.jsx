@@ -1,9 +1,11 @@
-import React, { useMemo, useEffect } from 'react';
+import React, { useMemo, useEffect, useState, useCallback } from 'react';
 import Toolbar from './Toolbar';
 import ListView from './ListView';
 import { useAppStore } from '../../store/appStore';
 import { buildLV1Rows, buildLV2Rows, computeFIFOLots, computeAvgPrice, computeMidStock, getMaterial } from '../../lib/calc';
 import { MATERIALS } from '../../data/mockData';
+import { printLV1, printLV1LV2, exportExcel, exportPDF } from '../../lib/reportExport';
+import { base44 } from '@/api/base44Client';
 
 const LV1_COLS = [
   { key: 'mid',    label: 'mid',     width: 70 },
@@ -34,6 +36,11 @@ const LV7_COLS = [
 
 export default function TabRakarn({ onOpenType, onOpenBrand, onOpenMid, onOpenSubtype }) {
   const { selectedBranch, dateRange, selectedMid, selectedMtype, selectedMsubtype, selectedBrand, setSelectedMid, setStatusSecond } = useAppStore();
+  const [busy, setBusy] = useState(null); // 'p1'|'p2'|'e1'|'e2'|null
+
+  // Get current user once
+  const [currentUser, setCurrentUser] = useState(null);
+  useEffect(() => { base44.auth.me().then(u => setCurrentUser(u)).catch(() => {}); }, []);
 
   // F3 shortcut
   useEffect(() => {
@@ -95,6 +102,32 @@ export default function TabRakarn({ onOpenType, onOpenBrand, onOpenMid, onOpenSu
   // Status bar update
   const mat = getMaterial(selectedMid);
 
+  const hasData = lv1Rows.length > 0;
+  const reportCtx = { selectedBranch, dateRange, selectedMtype, selectedMsubtype, user: currentUser };
+
+  const runAsync = useCallback(async (key, fn) => {
+    if (busy) return;
+    setBusy(key);
+    try { await fn(); } finally { setBusy(null); }
+  }, [busy]);
+
+  const handlePrint1    = () => runAsync('p1', async () => printLV1(lv1Rows, reportCtx));
+  const handlePrint2    = () => runAsync('p2', async () => printLV1LV2(lv1Rows, reportCtx));
+  const handleExcel     = () => runAsync('e1', async () => exportExcel(lv1Rows, { ...reportCtx }));
+  const handlePDF       = () => runAsync('e2', async () => exportPDF(lv1Rows, reportCtx));
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === 'F5') { e.preventDefault(); if (hasData) handlePrint1(); }
+      if (e.key === 'F6') { e.preventDefault(); if (hasData) handlePrint2(); }
+      if (e.ctrlKey && e.key === 'e') { e.preventDefault(); if (hasData) handleExcel(); }
+      if (e.ctrlKey && e.key === 'p') { e.preventDefault(); if (hasData) handlePDF(); }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [hasData, lv1Rows, reportCtx, busy]);
+
   const handleLv1Click = (i, row) => {
     if (row.mid && !row.mid.startsWith('+') && !row.mid.startsWith('[-')) {
       setSelectedMid(row.mid);
@@ -107,13 +140,16 @@ export default function TabRakarn({ onOpenType, onOpenBrand, onOpenMid, onOpenSu
     setStatusSecond(`${row.debit || row.credit} X 1 = ${mat2?.cost?.toFixed(2) || ''} [ ${row.billno} ]`);
   };
 
+  const noDataTip = !hasData ? 'ไม่มีข้อมูลให้พิมพ์/ส่งออก' : undefined;
   const toolbarButtons = [
-    { icon: '📑', iconKey: '📑', label: 'ชนิด',   onClick: onOpenType },
-    { icon: '🏷', iconKey: '📑', label: 'ประเภท', onClick: onOpenSubtype },
-    { icon: '🖨', iconKey: '🖨', label: 'พิมพ์ 1', onClick: () => console.log('TODO: พิมพ์ 1') },
-    { icon: '🖨', iconKey: '🖨', label: 'พิมพ์ 2', onClick: () => console.log('TODO: พิมพ์ 2') },
-    { icon: '❓', iconKey: '❓', label: 'รหัส',    onClick: onOpenMid },
-    { icon: '💲', iconKey: '💲', label: 'ค้นราคา', onClick: () => console.log('TODO: ค้นราคา') },
+    { icon: '📑', iconKey: '📑', label: 'ชนิด',    onClick: onOpenType },
+    { icon: '🏷', iconKey: '📑', label: 'ประเภท',  onClick: onOpenSubtype },
+    { icon: '🖨', iconKey: '🖨', label: 'พิมพ์ 1',  onClick: handlePrint1,  disabled: !hasData || !!busy, loading: busy === 'p1', title: noDataTip },
+    { icon: '🖨', iconKey: '🖨', label: 'พิมพ์ 2',  onClick: handlePrint2,  disabled: !hasData || !!busy, loading: busy === 'p2', title: noDataTip },
+    { icon: '📤', iconKey: '📤', label: 'ส่งต่อ 1', onClick: handleExcel,   disabled: !hasData || !!busy, loading: busy === 'e1', title: noDataTip },
+    { icon: '📄', iconKey: '📄', label: 'ส่งต่อ 2', onClick: handlePDF,     disabled: !hasData || !!busy, loading: busy === 'e2', title: noDataTip },
+    { icon: '❓', iconKey: '❓', label: 'รหัส',     onClick: onOpenMid },
+    { icon: '💲', iconKey: '💲', label: 'ค้นราคา',  onClick: () => {} },
   ];
 
   return (

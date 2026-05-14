@@ -350,10 +350,71 @@ export function useLV4(typeid) {
       .then(data => {
         if (cancelled) return;
         const rawRows = data.rows || [];
-        const processed = rawRows.map(r => 
-          r.id === '-SUM' ? { ...r, _isSubtotal: true } : r
-        );
-        setRows(processed);
+        
+        // Group by brand with subtotals for each brand
+        const grouped = [];
+        const brandMap = {};
+        let grandTotal = 0, grandValue = 0;
+        
+        // First pass: collect data by brand
+        for (const row of rawRows) {
+          if (row.id === '-SUM') continue; // Skip grand total row
+          
+          const brand = row.brand || '(ไม่มี)';
+          if (!brandMap[brand]) {
+            brandMap[brand] = { rows: [], total: 0, value: 0 };
+          }
+          brandMap[brand].rows.push(row);
+          brandMap[brand].total += row.total || 0;
+          brandMap[brand].value += row.value || 0;
+          grandTotal += row.total || 0;
+          grandValue += row.value || 0;
+        }
+        
+        // Second pass: build grouped output
+        const brandList = Object.keys(brandMap).sort();
+        for (const brand of brandList) {
+          const data = brandMap[brand];
+          
+          // Brand header
+          grouped.push({
+            _isGroupHeader: true,
+            id: `_brand_${brand}`,
+            info: brand,
+            total: '',
+            price: '',
+            value: '',
+          });
+          
+          // Brand items
+          for (const row of data.rows) {
+            grouped.push(row);
+          }
+          
+          // Brand subtotal
+          grouped.push({
+            _isSubtotal: true,
+            id: `-SUM_${brand}`,
+            mid: '',
+            info: '',
+            total: data.total,
+            price: data.total > 0 ? data.value / data.total : 0,
+            value: data.value,
+          });
+        }
+        
+        // Grand total
+        grouped.push({
+          _isSubtotal: true,
+          id: '-SUM',
+          mid: '',
+          info: '',
+          total: grandTotal,
+          price: grandTotal > 0 ? grandValue / grandTotal : 0,
+          value: grandValue,
+        });
+        
+        setRows(grouped);
       })
       .catch(e => { if (!cancelled) toast.error('โหลด LV4 ล้มเหลว: ' + e.message); })
       .finally(() => { if (!cancelled) setLoading(false); });

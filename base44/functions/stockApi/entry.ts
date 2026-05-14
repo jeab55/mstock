@@ -357,7 +357,8 @@ Deno.serve(async (req) => {
       ]);
 
       let grandQty = 0, grandValue = 0;
-      const result = rows.map(r => {
+      const result = [];
+      for (const r of rows) {
         const carryd = parseFloat(r.carryd)     || 0;
         const carryc = parseFloat(r.carryc)     || 0;
         const debit  = parseFloat(r.debit_)     || 0;
@@ -365,10 +366,12 @@ Deno.serve(async (req) => {
         const qty    = carryd - carryc + debit - credit;
         const price  = parseFloat(r.lcost)      || 0;
         const value  = parseFloat(r.totalvalue) || 0;
-        grandQty   += qty;
-        grandValue += value;
-        return { id: String(r.id), name: r.typename, total: qty, price, value };
-      });
+        if (qty !== 0) {
+          grandQty   += qty;
+          grandValue += value;
+          result.push({ id: String(r.id), name: r.typename, total: qty, price, value });
+        }
+      }
       // -SUM row: qty total, price blank (null → formatNum shows ''), value total
       result.push({ id: '-SUM', name: '', total: grandQty, price: null, value: grandValue });
       return Response.json({ rows: result });
@@ -435,19 +438,21 @@ Deno.serve(async (req) => {
       brands.forEach(br => {
         const typeid = br.typeid || 0;
         const agg = brandMap[br.id] || { total: 0, value: 0 };
-        const price = agg.total > 0 ? agg.value / agg.total : 0;
-        grandTotal += agg.total;
-        grandValue += agg.value;
-        
-        result.push({
-          id: String(br.id),
-          name: br.name,
-          total: agg.total,
-          price,
-          value: agg.value,
-          _typeid: typeid,
-          _typename: br.typeid ? typeMap[br.typeid] : '(ไม่มี)'
-        });
+        if (agg.total !== 0) {
+          const price = agg.total > 0 ? agg.value / agg.total : 0;
+          grandTotal += agg.total;
+          grandValue += agg.value;
+          
+          result.push({
+            id: String(br.id),
+            name: br.name,
+            total: agg.total,
+            price,
+            value: agg.value,
+            _typeid: typeid,
+            _typename: br.typeid ? typeMap[br.typeid] : '(ไม่มี)'
+          });
+        }
       });
 
       result.push({ id: '-SUM', name: '', total: grandTotal, price: grandTotal > 0 ? grandValue / grandTotal : 0, value: grandValue, _typeid: -1, _typename: '' });
@@ -488,7 +493,8 @@ Deno.serve(async (req) => {
       ]);
 
       let grandTotal = 0, grandValue = 0;
-      const result = rows.map(r => {
+      const result = [];
+      for (const r of rows) {
         const carryd = parseFloat(r.carryd)     || 0;
         const carryc = parseFloat(r.carryc)     || 0;
         const debit  = parseFloat(r.debit_)     || 0;
@@ -496,10 +502,12 @@ Deno.serve(async (req) => {
         const total  = carryd - carryc + debit - credit;
         const price  = parseFloat(r.cost)       || 0;
         const value  = parseFloat(r.totalvalue) || 0;
-        grandTotal += total;
-        grandValue += value;
-        return { mid: r.mid, info: r.info, total, price, value };
-      });
+        if (total !== 0) {
+          grandTotal += total;
+          grandValue += value;
+          result.push({ mid: r.mid, info: r.info, total, price, value });
+        }
+      }
       result.push({ id: '-SUM', mid: '', info: '', total: grandTotal, price: grandTotal > 0 ? grandValue / grandTotal : 0, value: grandValue });
       return Response.json({ rows: result });
     }
@@ -537,17 +545,20 @@ Deno.serve(async (req) => {
       ]);
 
       let grandTotal = 0, grandValue = 0;
-      const result = rows.map(r => {
+      const result = [];
+      for (const r of rows) {
         const carry  = parseFloat(r.carry)  || 0;
         const debit  = parseFloat(r.debit)  || 0;
         const credit = parseFloat(r.credit) || 0;
         const total  = carry + debit - credit;
         const cost   = parseFloat(r.cost)   || 0;
         const value  = parseFloat(r.totalvalue) || 0;
-        grandTotal += total;
-        grandValue += value;
-        return { mid: r.mid, info: r.info, total, price: cost, value };
-      });
+        if (total !== 0) {
+          grandTotal += total;
+          grandValue += value;
+          result.push({ mid: r.mid, info: r.info, total, price: cost, value });
+        }
+      }
       result.push({ id: '-SUM', mid: '', info: '', total: grandTotal, price: grandTotal > 0 ? grandValue / grandTotal : 0, value: grandValue });
       return Response.json({ rows: result });
     }

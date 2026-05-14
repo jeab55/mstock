@@ -42,8 +42,9 @@ export function useLV1() {
     api.stockcard(company, branchId, mtype, brand, from, to, isCustom ? customMidList : null)
       .then(data => {
         if (cancelled) return;
-        console.log('[useLV1] got', (data.rows || []).length, 'rows');
-        setRows(data.rows || []);
+        const filtered = (data.rows || []).filter(r => r.total !== 0);
+        console.log('[useLV1] got', (data.rows || []).length, 'rows, filtered to', filtered.length);
+        setRows(filtered);
       })
       .catch(e => {
         if (cancelled) return;

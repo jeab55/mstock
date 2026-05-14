@@ -418,15 +418,22 @@ export function useLV6(brandid) {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!brandid || !selectedBranch.id) { setRows([]); return; }
+    if (!brandid || !selectedBranch.id || !selectedBranch.code) { setRows([]); return; }
     let cancelled = false;
     setLoading(true);
-    api.stockcardByMidBrand(selectedCompany, selectedBranch.id, brandid, dateRange.from, dateRange.to)
-      .then(data => { if (!cancelled) setRows(data.rows || []); })
+    api.stockcardByMidBrand(selectedCompany, selectedBranch.id, selectedBranch.code, brandid, dateRange.from, dateRange.to)
+      .then(data => {
+        if (cancelled) return;
+        const rawRows = data.rows || [];
+        const processed = rawRows.map(r => 
+          r.id === '-SUM' ? { ...r, _isSubtotal: true } : r
+        );
+        setRows(processed);
+      })
       .catch(e => { if (!cancelled) toast.error('โหลด LV6 ล้มเหลว: ' + e.message); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [selectedCompany, selectedBranch.id, brandid, dateRange.from, dateRange.to]);
+  }, [selectedCompany, selectedBranch.id, selectedBranch.code, brandid, dateRange.from, dateRange.to]);
 
   return { rows, loading };
 }

@@ -502,32 +502,49 @@ Deno.serve(async (req) => {
 
     // ── stockcard_bymid_brand (LV6) ───────────────────────────────────────────
     if (action === 'stockcard_bymid_brand') {
-      const { branch, brand, from: date1, to: date2 } = params;
+      const { branch, branchcode, brand, from: date1, to: date2 } = params;
       if (!branch || !brand || !date1 || !date2) return Response.json({ error: 'branch, brand, from, to required' }, { status: 400 });
       const branchId = Number(branch);
       const d1time = `${date1} 00:00:00`;
       const d2time = `${date2} 23:59:59`;
+      const posTable = `POS.material_${branchcode}`;
 
       const rows = await query(company, `
         SELECT a.mid, m.info, m.cost,
-          SUM(CASE WHEN a.stockdate < ? THEN a.debit - a.credit ELSE 0 END) AS carry,
-          SUM(CASE WHEN a.stockdate BETWEEN ? AND ? THEN a.debit  ELSE 0 END) AS debit,
-          SUM(CASE WHEN a.stockdate BETWEEN ? AND ? THEN a.credit ELSE 0 END) AS credit
+          SUM(IF(a.stockdate < ?, a.debit - a.credit, 0)) AS carry,
+          SUM(IF(a.stockdate BETWEEN ? AND ?, a.debit,  0)) AS debit,
+          SUM(IF(a.stockdate BETWEEN ? AND ?, a.credit, 0)) AS credit,
+          SUM(
+            (IF(a.stockdate < ?, a.debit, 0) - IF(a.stockdate < ?, a.credit, 0)
+             + IF(a.stockdate BETWEEN ? AND ?, a.debit, 0) - IF(a.stockdate BETWEEN ? AND ?, a.credit, 0))
+            * m.cost
+          ) AS totalvalue
         FROM stockcard a
-        INNER JOIN material m ON a.mid = m.mid
-        WHERE a.branchid = ? AND m.brand = ? AND m.cancelstatus = 0
+        INNER JOIN ${posTable} m ON a.mid = m.mid
+        WHERE a.branchid = ? AND m.brand = ?
         GROUP BY a.mid, m.info, m.cost
         ORDER BY a.mid
-      `, [d1time, d1time, d2time, d1time, d2time, branchId, Number(brand)]);
+      `, [
+        d1time,
+        d1time, d2time,
+        d1time, d2time,
+        d1time, d1time, d1time, d2time, d1time, d2time,
+        branchId, Number(brand)
+      ]);
 
+      let grandTotal = 0, grandValue = 0;
       const result = rows.map(r => {
         const carry  = parseFloat(r.carry)  || 0;
         const debit  = parseFloat(r.debit)  || 0;
         const credit = parseFloat(r.credit) || 0;
         const total  = carry + debit - credit;
         const cost   = parseFloat(r.cost)   || 0;
-        return { mid: r.mid, info: r.info, total, price: cost, value: total * cost };
+        const value  = parseFloat(r.totalvalue) || 0;
+        grandTotal += total;
+        grandValue += value;
+        return { mid: r.mid, info: r.info, total, price: cost, value };
       });
+      result.push({ id: '-SUM', mid: '', info: '', total: grandTotal, price: grandTotal > 0 ? grandValue / grandTotal : 0, value: grandValue });
       return Response.json({ rows: result });
     }
 

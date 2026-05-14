@@ -122,9 +122,9 @@ export default function ListView({ columns, rows, headerRow, subHeaderRow, onRow
                   display = formatNum(val);
                 }
                 
-                // Color profit and value columns
+                // Color profit and value columns (but not on subtotals)
                 let valueColor = undefined;
-                if ((col.key === 'value' || col.key === 'profit') && isNumeric && !isSelected) {
+                if ((col.key === 'value' || col.key === 'profit') && isNumeric && !isSelected && !isSubtotal) {
                   if (val < 0) valueColor = '#ff0000';
                   else if (val > 0) valueColor = '#008000';
                 }

@@ -393,8 +393,12 @@ export function useLV5() {
             currentTypeId = typeid;
           }
           
-          // Add data row
-          grouped.push(row);
+          // Add data row or sum row
+          if (row.id === '-SUM') {
+            grouped.push({ ...row, _isSubtotal: true });
+          } else {
+            grouped.push(row);
+          }
         }
         
         setRows(grouped);

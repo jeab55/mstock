@@ -374,7 +374,7 @@ Deno.serve(async (req) => {
       return Response.json({ rows: result });
     }
 
-    // ── stockcard_bybrand (LV5: sum per brand) ────────────────────────────────
+    // ── stockcard_bybrand (LV5: sum per brand, grouped by type) ────────────────
     if (action === 'stockcard_bybrand') {
       const { branch, from: date1, to: date2 } = params;
       if (!branch || !date1 || !date2) return Response.json({ error: 'branch, from, to required' }, { status: 400 });
@@ -382,17 +382,25 @@ Deno.serve(async (req) => {
       const d1time = `${date1} 00:00:00`;
       const d2time = `${date2} 23:59:59`;
 
-      const brands = await query(company, `SELECT id, brandname AS name FROM brand ORDER BY id`);
+      // Get all types first
+      const types = await query(company, `SELECT id, typename FROM mtype ORDER BY id`);
+      
+      // Get all brands grouped by type
+      const brands = await query(company, `
+        SELECT b.id, b.brandname AS name, COALESCE(b.typeid, 0) AS typeid
+        FROM brand b
+        ORDER BY b.typeid, b.id
+      `);
 
       const rows = await query(company, `
-        SELECT m.brand,
+        SELECT m.brand, m.typeid,
           SUM(CASE WHEN a.stockdate < ? THEN a.debit - a.credit ELSE 0 END) AS carry,
           SUM(CASE WHEN a.stockdate BETWEEN ? AND ? THEN a.debit  ELSE 0 END) AS debit,
           SUM(CASE WHEN a.stockdate BETWEEN ? AND ? THEN a.credit ELSE 0 END) AS credit
         FROM stockcard a
         INNER JOIN material m ON a.mid = m.mid
         WHERE a.branchid = ?
-        GROUP BY m.brand
+        GROUP BY m.brand, m.typeid
       `, [d1time, d1time, d2time, d1time, d2time, branchId]);
 
       const brandMap = {};
@@ -400,7 +408,7 @@ Deno.serve(async (req) => {
         const carry  = parseFloat(r.carry)  || 0;
         const debit  = parseFloat(r.debit)  || 0;
         const credit = parseFloat(r.credit) || 0;
-        brandMap[r.brand] = { total: carry + debit - credit };
+        brandMap[r.brand] = { total: carry + debit - credit, typeid: r.typeid };
       }
 
       const matCosts = await query(company, `SELECT brand, AVG(cost) AS avgcost FROM material WHERE cancelstatus=0 GROUP BY brand`);
@@ -408,15 +416,32 @@ Deno.serve(async (req) => {
       for (const r of matCosts) costMap[r.brand] = parseFloat(r.avgcost) || 0;
 
       let grandTotal = 0, grandValue = 0;
-      const result = brands.map(br => {
+      const result = [];
+
+      // Group by type
+      const typeMap = {};
+      for (const t of types) typeMap[t.id] = t.typename;
+
+      brands.forEach(br => {
+        const typeid = br.typeid || 0;
         const agg = brandMap[br.id] || { total: 0 };
         const price = costMap[br.id] || 0;
         const value = agg.total * price;
         grandTotal += agg.total;
         grandValue += value;
-        return { id: String(br.id), name: br.name, total: agg.total, price, value };
+        
+        result.push({
+          id: String(br.id),
+          name: br.name,
+          total: agg.total,
+          price,
+          value,
+          _typeid: typeid,
+          _typename: br.typeid ? typeMap[br.typeid] : '(ไม่มี)'
+        });
       });
-      result.push({ id: '-SUM', name: '', total: grandTotal, price: grandTotal > 0 ? grandValue / grandTotal : 0, value: grandValue });
+
+      result.push({ id: '-SUM', name: '', total: grandTotal, price: grandTotal > 0 ? grandValue / grandTotal : 0, value: grandValue, _typeid: -1, _typename: '' });
       return Response.json({ rows: result });
     }
 

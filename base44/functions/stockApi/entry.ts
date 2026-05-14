@@ -487,6 +487,7 @@ Deno.serve(async (req) => {
         branchId, Number(mtype)
       ]);
 
+      let grandTotal = 0, grandValue = 0;
       const result = rows.map(r => {
         const carryd = parseFloat(r.carryd)     || 0;
         const carryc = parseFloat(r.carryc)     || 0;
@@ -495,8 +496,11 @@ Deno.serve(async (req) => {
         const total  = carryd - carryc + debit - credit;
         const price  = parseFloat(r.cost)       || 0;
         const value  = parseFloat(r.totalvalue) || 0;
+        grandTotal += total;
+        grandValue += value;
         return { mid: r.mid, info: r.info, total, price, value };
       });
+      result.push({ id: '-SUM', mid: '', info: '', total: grandTotal, price: grandTotal > 0 ? grandValue / grandTotal : 0, value: grandValue });
       return Response.json({ rows: result });
     }
 

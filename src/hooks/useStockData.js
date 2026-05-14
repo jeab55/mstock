@@ -346,7 +346,14 @@ export function useLV4(typeid) {
     let cancelled = false;
     setLoading(true);
     api.stockcardByMidType(selectedCompany, selectedBranch.id, selectedBranch.code, typeid, dateRange.from, dateRange.to)
-      .then(data => { if (!cancelled) setRows(data.rows || []); })
+      .then(data => {
+        if (cancelled) return;
+        const rawRows = data.rows || [];
+        const processed = rawRows.map(r => 
+          r.id === '-SUM' ? { ...r, _isSubtotal: true } : r
+        );
+        setRows(processed);
+      })
       .catch(e => { if (!cancelled) toast.error('โหลด LV4 ล้มเหลว: ' + e.message); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };

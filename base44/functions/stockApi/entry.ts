@@ -97,15 +97,19 @@ Deno.serve(async (req) => {
       return Response.json({ rows });
     }
 
-    // ── brands — "ประเภท" picker — show all brands regardless of type ────────────
-    // SELECT id, brandname FROM brand WHERE brandname LIKE ? ORDER BY id
+    // ── brands — "ประเภท" picker — filter by typeid if provided ────────────
+    // SELECT id, brandname FROM brand WHERE brandname LIKE ? AND (typeid IS NULL OR typeid = ?) ORDER BY id
     if (action === 'brands') {
+      const typeid = params.typeid ? Number(params.typeid) : null;
       const q = params.q || '';
-      const rows = await query(company, `
-        SELECT id, brandname AS name FROM brand
-        WHERE brandname LIKE ?
-        ORDER BY id
-      `, [`%${q}%`]);
+      let sql = `SELECT id, brandname AS name FROM brand WHERE brandname LIKE ?`;
+      const args = [`%${q}%`];
+      if (typeid) {
+        sql += ` AND (typeid IS NULL OR typeid = ?)`;
+        args.push(typeid);
+      }
+      sql += ` ORDER BY id`;
+      const rows = await query(company, sql, args);
       return Response.json({ rows });
     }
 

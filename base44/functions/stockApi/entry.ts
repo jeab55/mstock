@@ -559,6 +559,7 @@ Deno.serve(async (req) => {
       // Grand total
       result.push({
         _isSubtotal: true,
+        _isGrandTotal: true,
         id: '-SUM',
         mid: '',
         info: '',

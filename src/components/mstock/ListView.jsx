@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 
-function getRowStyle(firstCol, isSubtotal, isGroupHeader, isOSSubtotal) {
+function getRowStyle(firstCol, isSubtotal, isGroupHeader, isOSSubtotal, isGrandTotal) {
+  if (isGrandTotal) return { bg: '#8EA583', color: '#ffffff', bold: true, isSubtotal: true };
   if (isGroupHeader) return { bg: '#B1E4F5', color: '#000000', bold: false, isSection: true };
   if (isOSSubtotal) return { bg: '#C0DCC0', color: '#000000', bold: true, isSubtotal: true };
   if (isSubtotal) return { bg: '#FFF9C4', color: '#000000', bold: true, isSubtotal: true };
@@ -87,7 +88,8 @@ export default function ListView({ columns, rows, headerRow, subHeaderRow, onRow
           const isGroupHeader = row._isGroupHeader;
           const isSubtotal = row._isSubtotal;
           const isOSSubtotal = row._isOSSubtotal;
-          const style = getRowStyle(firstVal, isSubtotal, isGroupHeader, isOSSubtotal);
+          const isGrandTotal = row._isGrandTotal;
+          const style = getRowStyle(firstVal, isSubtotal, isGroupHeader, isOSSubtotal, isGrandTotal);
           const isSelected = selectedIndex === ri;
           const isHovered = hoveredIdx === ri && !isSelected;
 

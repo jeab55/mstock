@@ -40,13 +40,16 @@ export default function ModalFindMids({ onClose }) {
         description: aiQuery
       });
       const mids = res.data?.mids || [];
+      const keywords = res.data?.keywords || [];
+      
       if (mids.length === 0) {
-        toast.warning('ไม่พบรหัสสินค้า');
+        toast.warning(`ไม่พบสินค้า (ค้นหา: ${keywords.join(', ')})`);
         return;
       }
+      
       setInput(mids.join(', '));
       setAiQuery('');
-      toast.success(`พบ ${mids.length} รหัสสินค้า`);
+      toast.success(`พบ ${mids.length} รหัสสินค้า (ค้นหา: ${keywords.slice(0, 3).join(', ')}${keywords.length > 3 ? '...' : ''})`);
     } catch (e) {
       toast.error('AI search ล้มเหลว: ' + e.message);
     } finally {

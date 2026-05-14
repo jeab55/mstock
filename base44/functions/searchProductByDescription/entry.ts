@@ -29,11 +29,21 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'company and description required' }, { status: 400 });
     }
 
-    // ใช้ AI แปลคำบรรยายเป็นคำค้นหา (คำหลัก)
+    // ใช้ AI ที่มีความเชี่ยวชาญสูงกว่า (Claude Sonnet) แปลคำบรรยายเป็นคำค้นหา
     const keywords = await base44.integrations.Core.InvokeLLM({
-      prompt: `แปลคำบรรยายสินค้า "${description}" เป็นคำค้นหาหลักๆ ที่ใช้ค้นในฐานข้อมูล
-เช่น: "ผักกินกับน้ำพริก" → "ผัก, มะเขือ, แตง, กะเพรา, บุ้งไทย"
-ส่งเป็น JSON: {"keywords": ["ผัก", "มะเขือ", "แตง"]}`,
+      model: 'claude_sonnet_4_6',
+      prompt: `คุณเป็นผู้เชี่ยวชาญด้านสินค้าเกษตร/อาหาร คำบรรยายสินค้า: "${description}"
+
+วิเคราะห์และแปลเป็นคำค้นหาที่เฉพาะเจาะจง:
+- ระบุสินค้าหลักที่เกี่ยวข้อง (พืช ผัก ผลไม้ เนื้อ ปลา ฯลฯ)
+- รวมชื่อท้องถิ่นและชื่อวิทยาศาสตร์ถ้ารู้
+- เพิ่มรูปแบบการขาย (สด แห้ง ดองหรือบดหากเกี่ยวข้อง)
+
+ตัวอย่าง:
+- "ผักกินกับน้ำพริก" → ["ผัก", "มะเขือ", "แตง", "อะไร", "มะเขือเทศ", "กะเพรา", "บุ้ง", "ผักช่อม"]
+- "ไก่" → ["ไก่", "เนื้อไก่", "ไก่สด", "อกไก่", "ขาไก่"]
+
+ส่งผลลัพธ์เป็น JSON: {"keywords": ["คำค้น1", "คำค้น2", ...]}`,
       response_json_schema: {
         type: "object",
         properties: {
@@ -46,24 +56,31 @@ Deno.serve(async (req) => {
     });
 
     const searchTerms = keywords.keywords || [description];
+    console.log('[searchProductByDescription]', { description, searchTerms });
     
     // ค้นหาจากฐานข้อมูล: material.info หรือ material.mid ที่ตรงกับคำค้นหา
     let allMids = [];
     for (const term of searchTerms) {
-      const q = `%${term}%`;
+      const trimmed = String(term).trim();
+      if (!trimmed) continue;
+      
+      const q = `%${trimmed}%`;
       const rows = await query(company, `
-        SELECT DISTINCT mid FROM material 
+        SELECT DISTINCT mid, info FROM material 
         WHERE (info LIKE ? OR mid LIKE ?) 
           AND cancelstatus = 0
         LIMIT 20
       `, [q, q]);
+      
       allMids = allMids.concat(rows.map(r => r.mid));
+      console.log(`  term="${trimmed}" → ${rows.length} results`);
     }
 
     // ลบซ้ำ และ จำกัด max 50 รายการ
     const uniqueMids = [...new Set(allMids)].slice(0, 50);
+    console.log(`[searchProductByDescription] final: ${uniqueMids.length} unique mids`);
     
-    return Response.json({ mids: uniqueMids });
+    return Response.json({ mids: uniqueMids, keywords: searchTerms });
   } catch (error) {
     console.error('searchProductByDescription error:', error.message);
     return Response.json({ error: error.message }, { status: 500 });

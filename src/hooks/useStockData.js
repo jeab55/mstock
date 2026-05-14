@@ -378,18 +378,38 @@ export function useLV5() {
         if (cancelled) return;
         const rawRows = data.rows || [];
         
-        // Mark subtotal rows (backend already provides them)
-        const processed = rawRows.map(r => {
-          if (r.id === '-SUM' || r._isSubtotal) {
-            return { ...r, _isSubtotal: true };
-          }
-          if (r._isGroupHeader) {
-            return r;
-          }
-          return r;
-        });
+        // Group by typeid, preserving order
+        const grouped = [];
+        const seen = new Set();
+        let currentTypeId = null;
         
-        setRows(processed);
+        for (const row of rawRows) {
+          const typeid = row._typeid !== undefined ? row._typeid : 0;
+          
+          // Insert group header if new type
+          if (typeid !== currentTypeId && !seen.has(typeid)) {
+            grouped.push({
+              _isGroupHeader: true,
+              id: `_type_${typeid}`,
+              name: row._typename || '(ไม่มี)',
+              total: '',
+              price: '',
+              value: '',
+              _typeid: typeid
+            });
+            seen.add(typeid);
+            currentTypeId = typeid;
+          }
+          
+          // Add data row or sum row
+          if (row.id === '-SUM') {
+            grouped.push({ ...row, _isSubtotal: true });
+          } else {
+            grouped.push(row);
+          }
+        }
+        
+        setRows(grouped);
       })
       .catch(e => { if (!cancelled) toast.error('โหลด LV5 ล้มเหลว: ' + e.message); })
       .finally(() => { if (!cancelled) setLoading(false); });

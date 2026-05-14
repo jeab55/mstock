@@ -435,53 +435,24 @@ Deno.serve(async (req) => {
       const typeMap = {};
       for (const t of types) typeMap[t.id] = t.typename;
 
-      // Build grouped structure: type → [brands in that type]
-      const grouped = {};
       brands.forEach(br => {
         const typeid = br.typeid || 0;
         const agg = brandMap[br.id] || { total: 0, value: 0 };
         if (agg.total !== 0) {
-          if (!grouped[typeid]) grouped[typeid] = { rows: [], subtotalTotal: 0, subtotalValue: 0 };
-          grouped[typeid].rows.push({
+          const price = agg.total > 0 ? agg.value / agg.total : 0;
+          grandTotal += agg.total;
+          grandValue += agg.value;
+          
+          result.push({
             id: String(br.id),
             name: br.name,
             total: agg.total,
-            price: agg.total > 0 ? agg.value / agg.total : 0,
+            price,
             value: agg.value,
             _typeid: typeid,
-            _typename: typeMap[typeid] || '(ไม่มี)'
+            _typename: br.typeid ? typeMap[br.typeid] : '(ไม่มี)'
           });
-          grouped[typeid].subtotalTotal += agg.total;
-          grouped[typeid].subtotalValue += agg.value;
-          grandTotal += agg.total;
-          grandValue += agg.value;
         }
-      });
-
-      // Output: header + rows + subtotal for each type
-      Object.keys(grouped).sort((a, b) => Number(a) - Number(b)).forEach(typeid => {
-        const typeData = grouped[typeid];
-        const typename = typeMap[typeid] || '(ไม่มี)';
-        result.push({
-          _isGroupHeader: true,
-          id: `_type_${typeid}`,
-          name: typename,
-          total: '',
-          price: '',
-          value: '',
-          _typeid: typeid
-        });
-        typeData.rows.forEach(r => result.push(r));
-        result.push({
-          _isSubtotal: true,
-          id: `-SUM_${typeid}`,
-          name: `รวม ${typename}`,
-          total: typeData.subtotalTotal,
-          price: typeData.subtotalTotal > 0 ? typeData.subtotalValue / typeData.subtotalTotal : 0,
-          value: typeData.subtotalValue,
-          _typeid: typeid,
-          _typename: typename
-        });
       });
 
       result.push({ id: '-SUM', name: '', total: grandTotal, price: grandTotal > 0 ? grandValue / grandTotal : 0, value: grandValue, _typeid: -1, _typename: '' });

@@ -378,13 +378,29 @@ export function useLV5() {
         if (cancelled) return;
         const rawRows = data.rows || [];
         
-        // Group by typeid, preserving order
+        // Group by typeid with subtotals for each type
         const grouped = [];
         const seen = new Set();
         let currentTypeId = null;
+        let groupTotal = 0, groupValue = 0;
         
         for (const row of rawRows) {
           const typeid = row._typeid !== undefined ? row._typeid : 0;
+          
+          // If changing type and we have accumulated data, add subtotal
+          if (typeid !== currentTypeId && currentTypeId !== null && !seen.has(-1)) {
+            grouped.push({
+              _isSubtotal: true,
+              id: `-SUM_${currentTypeId}`,
+              name: '',
+              total: groupTotal,
+              price: groupTotal > 0 ? groupValue / groupTotal : 0,
+              value: groupValue,
+              _typeid: currentTypeId
+            });
+            groupTotal = 0;
+            groupValue = 0;
+          }
           
           // Insert group header if new type
           if (typeid !== currentTypeId && !seen.has(typeid)) {
@@ -401,12 +417,28 @@ export function useLV5() {
             currentTypeId = typeid;
           }
           
-          // Add data row or sum row
+          // Add data row (skip grand total row for now)
           if (row.id === '-SUM') {
-            grouped.push({ ...row, _isSubtotal: true });
+            // This is the grand total, skip it for group processing
+            continue;
           } else {
             grouped.push(row);
+            groupTotal += row.total || 0;
+            groupValue += row.value || 0;
           }
+        }
+        
+        // Add final group subtotal
+        if (currentTypeId !== null) {
+          grouped.push({
+            _isSubtotal: true,
+            id: `-SUM_${currentTypeId}`,
+            name: '',
+            total: groupTotal,
+            price: groupTotal > 0 ? groupValue / groupTotal : 0,
+            value: groupValue,
+            _typeid: currentTypeId
+          });
         }
         
         setRows(grouped);

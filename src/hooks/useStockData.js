@@ -362,10 +362,10 @@ export function useLV5() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!selectedBranch.id) return;
+    if (!selectedBranch.id || !selectedBranch.code) return;
     let cancelled = false;
     setLoading(true);
-    api.stockcardByBrand(selectedCompany, selectedBranch.id, dateRange.from, dateRange.to)
+    api.stockcardByBrand(selectedCompany, selectedBranch.id, selectedBranch.code, dateRange.from, dateRange.to)
       .then(data => {
         if (cancelled) return;
         const rawRows = data.rows || [];
@@ -402,7 +402,7 @@ export function useLV5() {
       .catch(e => { if (!cancelled) toast.error('โหลด LV5 ล้มเหลว: ' + e.message); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [selectedCompany, selectedBranch.id, dateRange.from, dateRange.to]);
+  }, [selectedCompany, selectedBranch.id, selectedBranch.code, dateRange.from, dateRange.to]);
 
   return { rows, loading };
 }

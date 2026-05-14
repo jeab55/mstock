@@ -355,7 +355,7 @@ export function useLV4(typeid) {
   return { rows, loading };
 }
 
-// ─── useLV5 (TabChanidYoi left: per-brand) ───────────────────────────────────
+// ─── useLV5 (TabChanidYoi left: per-brand grouped by type) ──────────────────
 export function useLV5() {
   const { selectedCompany, selectedBranch, dateRange } = useAppStore();
   const [rows, setRows]       = useState([]);
@@ -366,7 +366,39 @@ export function useLV5() {
     let cancelled = false;
     setLoading(true);
     api.stockcardByBrand(selectedCompany, selectedBranch.id, dateRange.from, dateRange.to)
-      .then(data => { if (!cancelled) setRows(data.rows || []); })
+      .then(data => {
+        if (cancelled) return;
+        const rawRows = data.rows || [];
+        
+        // Group by typeid, preserving order
+        const grouped = [];
+        const seen = new Set();
+        let currentTypeId = null;
+        
+        for (const row of rawRows) {
+          const typeid = row._typeid !== undefined ? row._typeid : 0;
+          
+          // Insert group header if new type
+          if (typeid !== currentTypeId && !seen.has(typeid)) {
+            grouped.push({
+              _isGroupHeader: true,
+              id: `_type_${typeid}`,
+              name: row._typename || '(ไม่มี)',
+              total: '',
+              price: '',
+              value: '',
+              _typeid: typeid
+            });
+            seen.add(typeid);
+            currentTypeId = typeid;
+          }
+          
+          // Add data row
+          grouped.push(row);
+        }
+        
+        setRows(grouped);
+      })
       .catch(e => { if (!cancelled) toast.error('โหลด LV5 ล้มเหลว: ' + e.message); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };

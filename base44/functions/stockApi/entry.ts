@@ -469,7 +469,7 @@ Deno.serve(async (req) => {
       const posTable = `POS.material_${branchcode}`;
 
       const rows = await query(company, `
-        SELECT a.mid, m.info, m.cost,
+        SELECT a.mid, m.info, m.cost, m.brand,
           SUM(IF(a.stockdate < ?, a.debit,  0)) AS carryd,
           SUM(IF(a.stockdate < ?, a.credit, 0)) AS carryc,
           SUM(IF(a.stockdate BETWEEN ? AND ?, a.debit,  0)) AS debit_,
@@ -482,8 +482,8 @@ Deno.serve(async (req) => {
         FROM stockcard a
         INNER JOIN ${posTable} m ON a.mid = m.mid
         WHERE a.branchid = ? AND m.typeid = ?
-        GROUP BY a.mid, m.info, m.cost
-        ORDER BY a.mid
+        GROUP BY a.mid, m.info, m.cost, m.brand
+        ORDER BY m.brand, a.mid
       `, [
         d1time, d1time,
         d1time, d2time,
@@ -494,6 +494,16 @@ Deno.serve(async (req) => {
 
       let grandTotal = 0, grandValue = 0;
       const result = [];
+      
+      // Get brand names
+      const brands = await query(company, `SELECT id, brandname FROM brand ORDER BY id`);
+      const brandMap = {};
+      for (const b of brands) {
+        brandMap[b.id] = b.brandname;
+      }
+      
+      // Group by brand
+      const brandGroups = {};
       for (const r of rows) {
         const carryd = parseFloat(r.carryd)     || 0;
         const carryc = parseFloat(r.carryc)     || 0;
@@ -502,13 +512,61 @@ Deno.serve(async (req) => {
         const total  = carryd - carryc + debit - credit;
         const price  = parseFloat(r.cost)       || 0;
         const value  = parseFloat(r.totalvalue) || 0;
+        
         if (total !== 0) {
+          const bid = r.brand || 0;
+          if (!brandGroups[bid]) {
+            brandGroups[bid] = { name: brandMap[bid] || '(ไม่มี)', rows: [], total: 0, value: 0 };
+          }
+          brandGroups[bid].rows.push({ mid: r.mid, info: r.info, total, price, value });
+          brandGroups[bid].total += total;
+          brandGroups[bid].value += value;
           grandTotal += total;
           grandValue += value;
-          result.push({ mid: r.mid, info: r.info, total, price, value });
         }
       }
-      result.push({ id: '-SUM', mid: '', info: '', total: grandTotal, price: grandTotal > 0 ? grandValue / grandTotal : 0, value: grandValue });
+      
+      // Build output with group headers and subtotals
+      const brandIds = Object.keys(brandGroups).sort((a, b) => Number(a) - Number(b));
+      for (const bid of brandIds) {
+        const grp = brandGroups[bid];
+        
+        result.push({
+          _isGroupHeader: true,
+          id: `_brand_${bid}`,
+          mid: grp.name,
+          info: '',
+          total: '',
+          price: '',
+          value: ''
+        });
+        
+        for (const row of grp.rows) {
+          result.push(row);
+        }
+        
+        result.push({
+          _isSubtotal: true,
+          id: `-SUM_${bid}`,
+          mid: '',
+          info: '',
+          total: grp.total,
+          price: grp.total > 0 ? grp.value / grp.total : 0,
+          value: grp.value
+        });
+      }
+      
+      // Grand total
+      result.push({
+        _isSubtotal: true,
+        id: '-SUM',
+        mid: '',
+        info: '',
+        total: grandTotal,
+        price: grandTotal > 0 ? grandValue / grandTotal : 0,
+        value: grandValue
+      });
+      
       return Response.json({ rows: result });
     }
 

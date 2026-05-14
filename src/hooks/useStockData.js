@@ -526,10 +526,71 @@ export function useLV6(brandid) {
       .then(data => {
         if (cancelled) return;
         const rawRows = data.rows || [];
-        const processed = rawRows.map(r => 
-          r.id === '-SUM' ? { ...r, _isSubtotal: true } : r
-        );
-        setRows(processed);
+        
+        // Group by mtype with subtotals for each type
+        const grouped = [];
+        const typeMap = {};
+        let grandTotal = 0, grandValue = 0;
+        
+        // First pass: collect data by mtype
+        for (const row of rawRows) {
+          if (row.id === '-SUM') continue; // Skip grand total row
+          
+          const mtype = row.mtype || '(ไม่มี)';
+          if (!typeMap[mtype]) {
+            typeMap[mtype] = { rows: [], total: 0, value: 0 };
+          }
+          typeMap[mtype].rows.push(row);
+          typeMap[mtype].total += row.total || 0;
+          typeMap[mtype].value += row.value || 0;
+          grandTotal += row.total || 0;
+          grandValue += row.value || 0;
+        }
+        
+        // Second pass: build grouped output
+        const typeList = Object.keys(typeMap).sort();
+        for (const mtype of typeList) {
+          const data = typeMap[mtype];
+          
+          // Type header
+          grouped.push({
+            _isGroupHeader: true,
+            id: `_type_${mtype}`,
+            info: mtype,
+            total: '',
+            price: '',
+            value: '',
+          });
+          
+          // Type items
+          for (const row of data.rows) {
+            grouped.push(row);
+          }
+          
+          // Type subtotal
+          grouped.push({
+            _isSubtotal: true,
+            id: `-SUM_${mtype}`,
+            mid: '',
+            info: '',
+            total: data.total,
+            price: data.total > 0 ? data.value / data.total : 0,
+            value: data.value,
+          });
+        }
+        
+        // Grand total
+        grouped.push({
+          _isSubtotal: true,
+          id: '-SUM',
+          mid: '',
+          info: '',
+          total: grandTotal,
+          price: grandTotal > 0 ? grandValue / grandTotal : 0,
+          value: grandValue,
+        });
+        
+        setRows(grouped);
       })
       .catch(e => { if (!cancelled) toast.error('โหลด LV6 ล้มเหลว: ' + e.message); })
       .finally(() => { if (!cancelled) setLoading(false); });

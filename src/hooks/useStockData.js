@@ -445,6 +445,12 @@ export function useLV5() {
             _typeid: currentTypeId
           });
         }
+
+        // Add grand total row (was skipped during grouping)
+        const grandRow = rawRows.find(r => r.id === '-SUM');
+        if (grandRow) {
+          grouped.push({ ...grandRow, _isSubtotal: true, _isGrandTotal: true });
+        }
         
         setRows(grouped);
       })

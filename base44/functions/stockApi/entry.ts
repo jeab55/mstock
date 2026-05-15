@@ -425,7 +425,10 @@ Deno.serve(async (req) => {
         const credit = parseFloat(r.credit) || 0;
         const total  = carry + debit - credit;
         const value  = parseFloat(r.totalvalue) || 0;
-        brandMap[r.brand] = { total, value, typeid: r.typeid };
+        const key = r.brand ?? 0;
+        if (!brandMap[key]) brandMap[key] = { total: 0, value: 0, typeid: r.typeid };
+        brandMap[key].total += total;
+        brandMap[key].value += value;
       }
 
       let grandTotal = 0, grandValue = 0;
@@ -435,14 +438,16 @@ Deno.serve(async (req) => {
       const typeMap = {};
       for (const t of types) typeMap[t.id] = t.typename;
 
+      // Brands from brand table
+      const usedBrandIds = new Set();
       brands.forEach(br => {
         const typeid = br.typeid || 0;
         const agg = brandMap[br.id] || { total: 0, value: 0 };
+        usedBrandIds.add(br.id);
         if (agg.total !== 0) {
           const price = agg.total > 0 ? agg.value / agg.total : 0;
           grandTotal += agg.total;
           grandValue += agg.value;
-          
           result.push({
             id: String(br.id),
             name: br.name,
@@ -454,6 +459,24 @@ Deno.serve(async (req) => {
           });
         }
       });
+
+      // Brands NOT in brand table (brand=NULL/0 or orphan ids)
+      for (const [bid, agg] of Object.entries(brandMap)) {
+        if (usedBrandIds.has(Number(bid))) continue;
+        if (agg.total === 0) continue;
+        const price = agg.total > 0 ? agg.value / agg.total : 0;
+        grandTotal += agg.total;
+        grandValue += agg.value;
+        result.push({
+          id: String(bid),
+          name: bid === '0' || bid === 0 ? '(ไม่ระบุชนิดย่อย)' : `(id:${bid})`,
+          total: agg.total,
+          price,
+          value: agg.value,
+          _typeid: 0,
+          _typename: '(ไม่มี)'
+        });
+      }
 
       result.push({ id: '-SUM', name: '', total: grandTotal, price: grandTotal > 0 ? grandValue / grandTotal : 0, value: grandValue, _typeid: -1, _typename: '' });
       return Response.json({ rows: result });

@@ -594,62 +594,6 @@ Deno.serve(async (req) => {
       return Response.json({ rows: result });
     }
 
-    // ── stockcard_bymid_list (TabSheet6: ค้นรหัส) ────────────────────────────
-    if (action === 'stockcard_bymid_list') {
-      const { branch, branchcode, mids, from: date1, to: date2 } = params;
-      if (!branch || !Array.isArray(mids) || mids.length === 0 || !date1 || !date2) return Response.json({ error: 'branch, mids, from, to required' }, { status: 400 });
-      const branchId = Number(branch);
-      const d1time = `${date1} 00:00:00`;
-      const d2time = `${date2} 23:59:59`;
-      const posTable = branchcode ? `POS.material_${branchcode}` : 'material';
-      const placeholders = mids.map(() => '?').join(',');
-
-      const rows = await query(company, `
-        SELECT a.mid, gm.info,
-          SUM(IF(a.stockdate < ?, a.debit,  0)) AS carryd,
-          SUM(IF(a.stockdate < ?, a.credit, 0)) AS carryc,
-          SUM(IF(a.stockdate BETWEEN ? AND ?, a.debit,  0)) AS debit_,
-          SUM(IF(a.stockdate BETWEEN ? AND ?, a.credit, 0)) AS credit_,
-          AVG(COALESCE(NULLIF(a.cost, 0), pm.cost, gm.cost, 0)) AS lcost,
-          SUM(
-            (IF(a.stockdate < ?, a.debit, 0) - IF(a.stockdate < ?, a.credit, 0)
-             + IF(a.stockdate BETWEEN ? AND ?, a.debit, 0) - IF(a.stockdate BETWEEN ? AND ?, a.credit, 0))
-            * COALESCE(NULLIF(a.cost, 0), pm.cost, gm.cost, 0)
-          ) AS totalvalue
-        FROM stockcard a
-        INNER JOIN material gm ON a.mid = gm.mid
-        LEFT JOIN ${posTable} pm ON a.mid = pm.mid
-        WHERE a.branchid = ? AND a.mid IN (${placeholders})
-        GROUP BY a.mid, gm.info
-        ORDER BY a.mid
-      `, [
-        d1time, d1time,
-        d1time, d2time,
-        d1time, d2time,
-        d1time, d1time, d1time, d2time, d1time, d2time,
-        branchId, ...mids
-      ]);
-
-      let grandTotal = 0, grandValue = 0;
-      const result = [];
-      for (const r of rows) {
-        const carryd = parseFloat(r.carryd)     || 0;
-        const carryc = parseFloat(r.carryc)     || 0;
-        const debit  = parseFloat(r.debit_)     || 0;
-        const credit = parseFloat(r.credit_)    || 0;
-        const total  = carryd - carryc + debit - credit;
-        const price  = parseFloat(r.lcost)      || 0;
-        const value  = parseFloat(r.totalvalue) || 0;
-        if (total !== 0) {
-          grandTotal += total;
-          grandValue += value;
-          result.push({ mid: r.mid, info: r.info, total, price, value });
-        }
-      }
-      result.push({ _isSubtotal: true, _isGrandTotal: true, id: '-SUM', mid: '', info: '', total: grandTotal, price: grandTotal > 0 ? grandValue / grandTotal : 0, value: grandValue });
-      return Response.json({ rows: result });
-    }
-
     // ── stockcard_bymid_brand (LV6) ───────────────────────────────────────────
     if (action === 'stockcard_bymid_brand') {
       const { branch, branchcode, brand, from: date1, to: date2 } = params;

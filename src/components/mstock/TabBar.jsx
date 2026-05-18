@@ -5,7 +5,7 @@ const TABS = [
   { key: "rakarn",    label: "รายการ" },
   { key: "chanid",    label: "ชนิด" },
   { key: "chanidyoi", label: "ชนิดย่อย" },
-  { key: "tabsheet6", label: "ค้นรหัส" },
+  { key: "tabsheet6", label: "สินค้ารายตัว" },
 ];
 
 export default function TabBar({ activeTab, onTabChange }) {

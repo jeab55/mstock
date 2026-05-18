@@ -28,5 +28,4 @@ export const api = {
   stockcardByBrand:    (company, branch, branchcode, from, to)        => call('stockcard_bybrand',     { company, branch, branchcode, from, to }),
   stockcardByMidType:  (company, branch, branchcode, mtype, from, to) => call('stockcard_bymid_type',  { company, branch, branchcode, mtype, from, to }),
   stockcardByMidBrand: (company, branch, branchcode, brand, from, to) => call('stockcard_bymid_brand', { company, branch, branchcode, brand, from, to }),
-  stockcardByMidList:  (company, branch, branchcode, mids, from, to)  => call('stockcard_bymid_list',  { company, branch, branchcode, mids, from, to }),
 };

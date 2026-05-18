@@ -5,7 +5,7 @@ import TabBar from '../components/mstock/TabBar';
 import TabRakarn from '../components/mstock/TabRakarn';
 import TabChanid from '../components/mstock/TabChanid';
 import TabChanidYoi from '../components/mstock/TabChanidYoi';
-import TabSheet6 from '../components/mstock/TabSheet6';
+import TabSheet6 from '../components/mstock/TabSheet6.jsx';
 import StatusBar from '../components/mstock/StatusBar';
 import ModalFindBrand from '../components/mstock/ModalFindBrand';
 import ModalFindBranch from '../components/mstock/ModalFindBranch';

@@ -323,7 +323,7 @@ export function useLV3() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!selectedBranch.id || !selectedBranch.code) return;
+    if (!selectedBranch.id || !selectedBranch.code) { setLoading(false); return; }
     let cancelled = false;
     setLoading(true);
     api.stockcardByType(selectedCompany, selectedBranch.id, selectedBranch.code, dateRange.from, dateRange.to)
@@ -343,7 +343,7 @@ export function useLV4(typeid) {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!typeid || !selectedBranch.id || !selectedBranch.code) { setRows([]); return; }
+    if (!typeid || !selectedBranch.id || !selectedBranch.code) { setRows([]); setLoading(false); return; }
     let cancelled = false;
     setLoading(true);
     api.stockcardByMidType(selectedCompany, selectedBranch.id, selectedBranch.code, typeid, dateRange.from, dateRange.to)
@@ -375,7 +375,7 @@ export function useLV5() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!selectedBranch.id || !selectedBranch.code) return;
+    if (!selectedBranch.id || !selectedBranch.code) { setLoading(false); return; }
     let cancelled = false;
     setLoading(true);
     api.stockcardByBrand(selectedCompany, selectedBranch.id, selectedBranch.code, dateRange.from, dateRange.to)
@@ -489,7 +489,7 @@ export function useLV6(brandid) {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!brandid || !selectedBranch.id || !selectedBranch.code) { setRows([]); return; }
+    if (!brandid || !selectedBranch.id || !selectedBranch.code) { setRows([]); setLoading(false); return; }
     let cancelled = false;
     setLoading(true);
     api.stockcardByMidBrand(selectedCompany, selectedBranch.id, selectedBranch.code, brandid, dateRange.from, dateRange.to)

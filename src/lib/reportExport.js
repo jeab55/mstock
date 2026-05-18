@@ -294,7 +294,7 @@ export function printLV2(lv2Rows, { selectedBranch, selectedMid, selectedMidInfo
     bodyHtml += `<table><thead><tr><th>ประเภท</th><th>เลขที่บิล</th><th>วันที่</th><th class="num">รับเข้า</th><th class="num">จ่ายออก</th><th>อ้างอิง</th><th class="num">มูลค่า (บาท)</th></tr></thead><tbody>${rows}${subtotalRow}</tbody></table>`;
   }
 
-  const footerHtml = footerData ? `<div class="footer">รวมรับเข้า: ${footerData.totalIncome.toFixed(2)} บาท | รวมขาย: ${footerData.totalCost.toFixed(2)} บาท | กำไรรวม: ${footerData.totalProfit.toFixed(2)} บาท (ROI: ${footerData.roi.toFixed(1)}%)</div>` : '';
+  const footerHtml = footerData ? `<div class="footer">รวมรับเข้า: ${(footerData.receivedTotal ?? 0).toFixed(2)} บาท | รวมขาย: ${(footerData.saleRevenue ?? 0).toFixed(2)} บาท | กำไรรวม: ${(footerData.profitTotal ?? 0).toFixed(2)} บาท (ROI: ${(footerData.roi ?? 0).toFixed(1)}%)</div>` : '';
 
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
   <title>รายงานการเคลื่อนไหวสินค้า</title>

@@ -316,6 +316,25 @@ export function useBrands(q = '') {
   return { rows, loading };
 }
 
+// ─── useMtypes ────────────────────────────────────────────────────────────────
+export function useMtypes(q = '') {
+  const { selectedCompany } = useAppStore();
+  const [rows, setRows]       = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    api.mtypes(selectedCompany, q)
+      .then(data => { if (!cancelled) setRows(data.rows || []); })
+      .catch(e => { if (!cancelled) toast.error('โหลดชนิดล้มเหลว: ' + e.message); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [selectedCompany, q]);
+
+  return { rows, loading };
+}
+
 // ─── useLV3 (TabChanid left: per-mtype) ──────────────────────────────────────
 export function useLV3() {
   const { selectedCompany, selectedBranch, dateRange } = useAppStore();

@@ -18,7 +18,8 @@ export const useAppStore = create((set) => ({
   selectedMtype:    '101',   // mtype.id — default เนื้อหมู (=101 in mtype table)
   selectedBrand:    null,    // brand.id — optional, filtered by selectedMtype
   selectedMid:      null,
-  customMidList:    null,    // array of mid for custom search (filter override)
+  customMidList:    null,    // array of mid for custom search (filter override) — used by TabRakarn
+  customMidListT6:  null,    // array of mid for TabSheet6 (ค้นรหัส) — separate from rakarn
   activeTab:        'rakarn',
   modalOpen:        null,
   statusSecond:     '',
@@ -30,6 +31,7 @@ export const useAppStore = create((set) => ({
   setSelectedBrand:  (id) => set({ selectedBrand: id }),
   setSelectedMid:    (mid)=> set({ selectedMid: mid }),
   setCustomMidList:  (mids)=> set({ customMidList: mids }),
+  setCustomMidListT6:(mids)=> set({ customMidListT6: mids }),
   setActiveTab:      (tab)=> set({ activeTab: tab }),
   setModalOpen:      (m)  => set({ modalOpen: m }),
   setStatusSecond:   (s)  => set({ statusSecond: s }),

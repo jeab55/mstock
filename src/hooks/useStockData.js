@@ -462,6 +462,26 @@ export function useLV5() {
   return { rows, loading };
 }
 
+// ─── useLV4MidList (TabSheet6: per-mid for custom mid list) ──────────────────
+export function useLV4MidList(midList) {
+  const { selectedCompany, selectedBranch, dateRange } = useAppStore();
+  const [rows, setRows]       = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!midList || midList.length === 0 || !selectedBranch.id) { setRows([]); return; }
+    let cancelled = false;
+    setLoading(true);
+    api.stockcardByMidList(selectedCompany, selectedBranch.id, selectedBranch.code, midList, dateRange.from, dateRange.to)
+      .then(data => { if (!cancelled) setRows(data.rows || []); })
+      .catch(e => { if (!cancelled) toast.error('โหลดค้นรหัสล้มเหลว: ' + e.message); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [selectedCompany, selectedBranch.id, selectedBranch.code, midList, dateRange.from, dateRange.to]);
+
+  return { rows, loading };
+}
+
 // ─── useLV6 (TabChanidYoi right: per-mid for brand) ──────────────────────────
 export function useLV6(brandid) {
   const { selectedCompany, selectedBranch, dateRange } = useAppStore();

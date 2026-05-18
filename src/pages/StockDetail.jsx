@@ -5,14 +5,14 @@ import TabBar from '../components/mstock/TabBar';
 import TabRakarn from '../components/mstock/TabRakarn';
 import TabChanid from '../components/mstock/TabChanid';
 import TabChanidYoi from '../components/mstock/TabChanidYoi';
-import TabSheet6 from '../components/mstock/TabSheet6.jsx';
+import TabSheet6 from '../components/mstock/TabSheet6';
 import StatusBar from '../components/mstock/StatusBar';
 import ModalFindBrand from '../components/mstock/ModalFindBrand';
 import ModalFindBranch from '../components/mstock/ModalFindBranch';
 import ModalFindSubtype from '../components/mstock/ModalFindSubtype';
 import ModalMidPicker from '../components/mstock/ModalMidPicker';
-import ModalFindMids from '../components/mstock/ModalFindMids.jsx';
-import ModalFindMidsT6 from '../components/mstock/ModalFindMidsT6.jsx';
+import ModalFindMids from '../components/mstock/ModalFindMids';
+import ModalFindMidsT6 from '../components/mstock/ModalFindMidsT6';
 import { useAppStore } from '../store/appStore';
 import { useBranches } from '../hooks/useStockData';
 

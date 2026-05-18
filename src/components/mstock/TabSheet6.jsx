@@ -6,11 +6,11 @@ import { useAppStore } from '../../store/appStore';
 import { useLV4MidList } from '../../hooks/useStockData';
 
 const COLS = [
-  { key: 'mid',   label: 'mid',   width: 70 },
-  { key: 'info',  label: 'Info',  width: 300 },
+  { key: 'mid',   label: 'mid',     width: 70 },
+  { key: 'info',  label: 'Info',    width: 300 },
   { key: 'total', label: 'กกเหลือ', width: 90,  align: 'right' },
-  { key: 'price', label: 'ราคา',  width: 80,  align: 'right' },
-  { key: 'value', label: 'รวม',   width: 110, align: 'right' },
+  { key: 'price', label: 'ราคา',   width: 80,  align: 'right' },
+  { key: 'value', label: 'รวม',    width: 110, align: 'right' },
 ];
 
 export default function TabSheet6({ onOpenFindMids }) {
@@ -31,7 +31,7 @@ export default function TabSheet6({ onOpenFindMids }) {
         {loading && <LoadingOverlay />}
         {midList.length === 0 ? (
           <div className="flex items-center justify-center h-full text-gray-400 text-sm">
-            กด F8 หรือปุ่ม "ค้นรหัส" เพื่อเลือกรายการสินค้า
+            กด F8 หรือปุ่ม &quot;ค้นรหัส&quot; เพื่อเลือกรายการสินค้า
           </div>
         ) : (
           <ListView

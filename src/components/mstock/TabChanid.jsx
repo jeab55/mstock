@@ -5,6 +5,8 @@ import LoadingOverlay from './LoadingOverlay';
 import { X } from 'lucide-react';
 import { useAppStore } from '../../store/appStore';
 import { useLV3, useLV4, useMtypes } from '../../hooks/useStockData';
+import { printLV3, printLV4 } from '../../lib/reportExport';
+import { base44 } from '@/api/base44Client';
 
 const LV3_COLS = [
   { key: 'id',    label: 'รหัส',    width: 55 },
@@ -23,7 +25,9 @@ const LV4_COLS = [
 ];
 
 export default function TabChanid() {
-  const { setSelectedMtype } = useAppStore();
+  const { setSelectedMtype, selectedBranch, dateRange } = useAppStore();
+  const [currentUser, setCurrentUser] = useState(null);
+  useEffect(() => { base44.auth.me().then(u => setCurrentUser(u)).catch(() => {}); }, []);
   const [selectedLv3, setSelectedLv3] = useState(-1);
   const [selectedTypeid, setSelectedTypeid] = useState(null);
   const [filterTypeid, setFilterTypeid] = useState(null); // null = ทั้งหมด
@@ -37,10 +41,13 @@ export default function TabChanid() {
     ? allLv3Rows.filter(r => r.id === '-SUM' || String(r.id) === String(filterTypeid))
     : allLv3Rows;
 
+  const ctx = { selectedBranch, dateRange, user: currentUser };
+  const typeName = selectedTypeid ? allLv3Rows.find(r => String(r.id) === String(selectedTypeid))?.name : null;
+
   const toolbarButtons = [
     { icon: '💲', iconKey: '💲', label: 'ค้นชนิด', onClick: () => setShowFindType(true), title: 'ค้นหาข้อมูลชนิดสินค้า', group: 0 },
-    { icon: '🖨', iconKey: '🖨', label: 'พิมพ์ย่อ',  onClick: () => {}, title: 'พิมพ์รายงานแบบกะทัดรัด', group: 1 },
-    { icon: '🖨', iconKey: '🖨', label: 'พิมพ์ละเอียด',  onClick: () => {}, title: 'พิมพ์รายงานแบบละเอียด', group: 1 },
+    { icon: '🖨', iconKey: '🖨', label: 'พิมพ์ซ้าย', onClick: () => printLV3(lv3Rows, ctx), title: 'พิมพ์รายงานชนิด (ซ้าย)', group: 1 },
+    { icon: '🖨', iconKey: '🖨', label: 'พิมพ์ขวา',  onClick: () => printLV4(lv4Rows, { ...ctx, typeName }), title: 'พิมพ์รายงานรายสินค้าตามชนิด (ขวา)', group: 1 },
   ];
 
   const handleLv3Click = (i, row) => {

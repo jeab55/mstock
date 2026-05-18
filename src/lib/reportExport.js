@@ -329,6 +329,126 @@ export function exportPDFLV2(lv2Rows, { selectedBranch, selectedMid, selectedMid
   printLV2(lv2Rows, { selectedBranch, selectedMid, selectedMidInfo, dateRange, user, footerData });
 }
 
+// ─── Print LV5 (ชนิดย่อย — ซ้าย) ────────────────────────────────────────────
+export function printLV5(lv5Rows, { selectedBranch, dateRange, user }) {
+  const { from: date1, to: date2 } = dateRange;
+  const printDate = new Date().toLocaleDateString('th-TH');
+  const userName = user?.full_name || user?.email || '-';
+
+  const dataRows = lv5Rows.filter(r => !r._isGroupHeader && !r._isSubtotal);
+  const grandRow = lv5Rows.find(r => r._isGrandTotal);
+
+  // Group headers for section labels
+  const groupHeaders = lv5Rows.filter(r => r._isGroupHeader);
+
+  let bodyRows = '';
+  let currentTypeid = null;
+  for (const row of lv5Rows) {
+    if (row._isGroupHeader) {
+      currentTypeid = row._typeid;
+      bodyRows += `<tr style="background:#ddeeff;font-weight:bold;"><td colspan="5">${row.name || '(ไม่มี)'}</td></tr>`;
+    } else if (row._isGrandTotal) {
+      bodyRows += `<tr style="background:#d4d0c8;font-weight:bold;"><td colspan="2">รวมทั้งหมด (${dataRows.length} รายการ)</td><td class="num">${fmt2(row.total)}</td><td class="num">${fmt2(row.price)}</td><td class="num">${fmt2(row.value)}</td></tr>`;
+    } else if (row._isSubtotal) {
+      bodyRows += `<tr style="background:#FFF9C4;font-weight:bold;"><td colspan="2">รวมกลุ่ม</td><td class="num">${fmt2(row.total)}</td><td class="num">${fmt2(row.price)}</td><td class="num">${fmt2(row.value)}</td></tr>`;
+    } else {
+      bodyRows += `<tr><td>${row.id ?? ''}</td><td>${row.name ?? ''}</td><td class="num">${fmt2(row.total)}</td><td class="num">${fmt2(row.price)}</td><td class="num">${fmt2(row.value)}</td></tr>`;
+    }
+  }
+
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
+  <title>รายงานสต็อกตามชนิดย่อย</title>
+  <style>
+    @page { size: A4 portrait; margin: 15mm; }
+    body { font-family: Tahoma, Arial, sans-serif; font-size: 10pt; color: #000; }
+    h2 { margin: 0; font-size: 12pt; }
+    .sub { font-size: 9pt; color: #444; margin: 2px 0; }
+    table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+    th { background: #d4d0c8; border: 1px solid #999; padding: 3px 5px; text-align: left; font-size: 9pt; }
+    td { border: 1px solid #bbb; padding: 2px 5px; font-size: 9pt; }
+    .num { text-align: right; font-variant-numeric: tabular-nums; }
+    @media print { button { display: none; } }
+  </style></head><body>
+  <h2>รายงานสต็อกตามชนิดย่อย — ${selectedBranch.name}</h2>
+  <div class="sub">ช่วงวันที่: ${date1} ถึง ${date2} &nbsp;|&nbsp; พิมพ์เมื่อ: ${printDate} &nbsp;|&nbsp; ผู้พิมพ์: ${userName}</div>
+  <table>
+    <thead><tr>
+      <th style="width:55px">รหัส</th>
+      <th>ชนิดย่อย</th>
+      <th style="width:90px" class="num">กก.เหลือ</th>
+      <th style="width:80px" class="num">ราคา</th>
+      <th style="width:110px" class="num">รวม (บาท)</th>
+    </tr></thead>
+    <tbody>${bodyRows}</tbody>
+  </table>
+  <script>window.onload=()=>window.print();<\/script>
+  </body></html>`;
+
+  const win = window.open('', '_blank');
+  win.document.write(html);
+  win.document.close();
+}
+
+// ─── Print LV6 (ชนิดย่อย — ขวา: รายการสินค้าตาม brand) ─────────────────────
+export function printLV6(lv6Rows, { selectedBranch, dateRange, user, brandName }) {
+  const { from: date1, to: date2 } = dateRange;
+  const printDate = new Date().toLocaleDateString('th-TH');
+  const userName = user?.full_name || user?.email || '-';
+
+  const dataRows = lv6Rows.filter(r => !r._isSubtotal);
+  const sumRow   = lv6Rows.find(r => r._isSubtotal);
+
+  const rows = dataRows.map(r => `
+    <tr>
+      <td>${r.mid ?? ''}</td>
+      <td>${r.info ?? ''}</td>
+      <td class="num">${fmt2(r.total)}</td>
+      <td class="num">${fmt2(r.price)}</td>
+      <td class="num">${fmt2(r.value)}</td>
+    </tr>`).join('');
+
+  const totalRow = sumRow ? `
+    <tr style="background:#d4d0c8;font-weight:bold;">
+      <td colspan="2">รวมทั้งหมด (${dataRows.length} รายการ)</td>
+      <td class="num">${fmt2(sumRow.total)}</td>
+      <td class="num">${fmt2(sumRow.price)}</td>
+      <td class="num">${fmt2(sumRow.value)}</td>
+    </tr>` : '';
+
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
+  <title>รายงานสต็อกรายสินค้าตามชนิดย่อย</title>
+  <style>
+    @page { size: A4 landscape; margin: 12mm; }
+    body { font-family: Tahoma, Arial, sans-serif; font-size: 10pt; color: #000; }
+    h2 { margin: 0; font-size: 12pt; }
+    .sub { font-size: 9pt; color: #444; margin: 2px 0; }
+    table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+    th { background: #d4d0c8; border: 1px solid #999; padding: 3px 5px; text-align: left; font-size: 9pt; }
+    td { border: 1px solid #bbb; padding: 2px 5px; font-size: 9pt; }
+    .num { text-align: right; font-variant-numeric: tabular-nums; }
+    @media print { button { display: none; } }
+  </style></head><body>
+  <h2>รายงานสต็อกรายสินค้า${brandName ? ' — ชนิดย่อย: ' + brandName : ''} — ${selectedBranch.name}</h2>
+  <div class="sub">ช่วงวันที่: ${date1} ถึง ${date2} &nbsp;|&nbsp; พิมพ์เมื่อ: ${printDate} &nbsp;|&nbsp; ผู้พิมพ์: ${userName}</div>
+  <table>
+    <thead><tr>
+      <th style="width:70px">mid</th>
+      <th>Info</th>
+      <th style="width:80px" class="num">Total</th>
+      <th style="width:80px" class="num">Price</th>
+      <th style="width:100px" class="num">Value (บาท)</th>
+    </tr></thead>
+    <tbody>${rows}</tbody>
+    <tfoot>${totalRow}</tfoot>
+  </table>
+  <script>window.onload=()=>window.print();<\/script>
+  </body></html>`;
+
+  const win = window.open('', '_blank');
+  win.document.write(html);
+  win.document.close();
+}
+
 // ─── Print LV3 (ชนิด — ซ้าย) ─────────────────────────────────────────────────
 export function printLV3(lv3Rows, { selectedBranch, dateRange, user }) {
   const { from: date1, to: date2 } = dateRange;

@@ -5,6 +5,8 @@ import LoadingOverlay from './LoadingOverlay';
 import { X } from 'lucide-react';
 import { useAppStore } from '../../store/appStore';
 import { useLV5, useLV6, useMtypes } from '../../hooks/useStockData';
+import { printLV5, printLV6 } from '../../lib/reportExport';
+import { base44 } from '@/api/base44Client';
 
 const LV5_COLS = [
   { key: 'id',    label: 'รหัส',    width: 55 },
@@ -23,11 +25,14 @@ const LV6_COLS = [
 ];
 
 export default function TabChanidYoi() {
-  const { setSelectedBrand } = useAppStore();
+  const { setSelectedBrand, selectedBranch, dateRange } = useAppStore();
+  const [currentUser, setCurrentUser] = useState(null);
   const [selectedLv5, setSelectedLv5] = useState(-1);
   const [selectedBrandid, setSelectedBrandid] = useState(null);
   const [filterTypeid, setFilterTypeid] = useState(null); // null = ทั้งหมด
   const [showFindType, setShowFindType] = useState(false);
+
+  useEffect(() => { base44.auth.me().then(u => setCurrentUser(u)).catch(() => {}); }, []);
 
   const { rows: allLv5Rows, loading: lv5Loading } = useLV5();
   const { rows: lv6Rows, loading: lv6Loading } = useLV6(selectedBrandid);
@@ -42,10 +47,13 @@ export default function TabChanidYoi() {
     ? allLv5Rows.find(r => r._isGroupHeader && String(r._typeid) === String(filterTypeid))?.name || `id:${filterTypeid}`
     : null;
 
+  const ctx = { selectedBranch, dateRange, user: currentUser };
+  const brandName = selectedBrandid ? allLv5Rows.find(r => String(r.id) === String(selectedBrandid))?.name : null;
+
   const toolbarButtons = [
     { icon: '💲', iconKey: '💲', label: 'ค้นประเภท', onClick: () => setShowFindType(true), title: 'ค้นหาข้อมูลประเภทสินค้า', group: 0 },
-    { icon: '🖨', iconKey: '🖨', label: 'พิมพ์ย่อ',   onClick: () => {}, title: 'พิมพ์รายงานแบบกะทัดรัด', group: 1 },
-    { icon: '🖨', iconKey: '🖨', label: 'พิมพ์ละเอียด',   onClick: () => {}, title: 'พิมพ์รายงานแบบละเอียด', group: 1 },
+    { icon: '🖨', iconKey: '🖨', label: 'พิมพ์ซ้าย', onClick: () => printLV5(lv5Rows, ctx), title: 'พิมพ์รายงานชนิดย่อย (ซ้าย)', group: 1 },
+    { icon: '🖨', iconKey: '🖨', label: 'พิมพ์ขวา',  onClick: () => printLV6(lv6Rows, { ...ctx, brandName }), title: 'พิมพ์รายงานรายสินค้าตามชนิดย่อย (ขวา)', group: 1 },
   ];
 
   const handleLv5Click = (i, row) => {

@@ -6,6 +6,7 @@ import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import StockDetail from './pages/StockDetail.jsx';
+import MobileStockDetail from './pages/MobileStockDetail.jsx';
 // Add page imports here
 
 const AuthenticatedApp = () => {
@@ -32,9 +33,12 @@ const AuthenticatedApp = () => {
   }
 
   // Render the main app
+  const isMobile = window.innerWidth < 1024;
+
   return (
     <Routes>
-      <Route path="/" element={<StockDetail />} />
+      <Route path="/" element={isMobile ? <MobileStockDetail /> : <StockDetail />} />
+      <Route path="/mobile" element={<MobileStockDetail />} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );

@@ -51,9 +51,9 @@ export default function TabChanid() {
   };
 
   const handleTypeSelect = (typeid) => {
-    setFilterTypeid(typeid); // null = ทั้งหมด
+    setFilterTypeid(typeid);
+    setSelectedTypeid(typeid); // โหลด LV4 ทันทีเมื่อเลือกจาก modal
     setSelectedLv3(-1);
-    setSelectedTypeid(null);
     setShowFindType(false);
   };
 
